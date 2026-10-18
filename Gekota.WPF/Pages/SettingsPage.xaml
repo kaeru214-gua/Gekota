@@ -1,0 +1,213 @@
+<ui:Page
+    x:Class="Gekota.WPF.Pages.SettingsPage" x:Name="SettingsPageRoot"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:l="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
+    l:LocalizeDictionary.DesignCulture=""
+    l:ResxLocalizationProvider.DefaultAssembly="Gekota.WPF"
+    l:ResxLocalizationProvider.DefaultDictionary="Strings"
+    xmlns:c="clr-namespace:Gekota.WPF.Controls"
+    xmlns:local="clr-namespace:Gekota.WPF.Pages"
+    xmlns:config="clr-namespace:Gekota.Core.Config;assembly=Gekota.Core"
+    xmlns:configv3="clr-namespace:Gekota.Core.Config.V3;assembly=Gekota.Core"
+    xmlns:m="clr-namespace:Gekota.WPF.Models"
+    xmlns:t="clr-namespace:Gekota.Core.Templating;assembly=Gekota.Core"
+    xmlns:model="clr-namespace:Gekota.WPF.Models"
+    mc:Ignorable="d"
+    d:DesignHeight="1500" d:DesignWidth="500"
+    DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=local:RootPage},Path=DataContext.Recorder.Config.Global}"
+    Title="SettingsPage">
+    <ui:Page.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </ui:Page.Resources>
+    <ScrollViewer d:DataContext="{d:DesignInstance Type=configv3:GlobalConfig}">
+        <ui:SimpleStackPanel Orientation="Vertical" Spacing="5" Margin="20">
+
+            <TextBlock Text="设置" FontSize="28" FontWeight="SemiBold" FontFamily="Microsoft Yahei" Margin="0,10"/>
+
+            <!-- ==================== 弹幕录制 ==================== -->
+            <GroupBox Header="弹幕录制">
+                <StackPanel>
+                    <ui:ToggleSwitch IsOn="{Binding RecordDanmaku}"
+                                     OnContent="保存弹幕" OffContent="保存弹幕"/>
+                    <StackPanel Margin="0,7,0,0">
+                        <ui:ToggleSwitch IsEnabled="{Binding RecordDanmaku}" IsOn="{Binding RecordDanmakuSuperChat}"
+                                         OnContent="保存SuperChat" OffContent="保存SuperChat"/>
+                        <ui:ToggleSwitch IsEnabled="{Binding RecordDanmaku}" IsOn="{Binding RecordDanmakuGuard}"
+                                         OnContent="保存大航海" OffContent="保存大航海"/>
+                        <ui:ToggleSwitch IsEnabled="{Binding RecordDanmaku}" IsOn="{Binding RecordDanmakuGift}"
+                                         OnContent="保存礼物" OffContent="保存礼物"/>
+                        <ui:ToggleSwitch IsEnabled="{Binding RecordDanmaku}" IsOn="{Binding RecordDanmakuRaw}"
+                                         OnContent="保存 弹幕原始数据" OffContent="保存 弹幕原始数据"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- ==================== 录制模式 ==================== -->
+            <GroupBox Header="录制模式">
+                <StackPanel>
+                    <RadioButton GroupName="RecordMode" Content="标准模式"
+                                 IsChecked="{Binding Path=RecordMode, Converter={StaticResource EnumToBooleanConverter},
+                        ConverterParameter={x:Static config:RecordMode.Standard}}" />
+                    <RadioButton GroupName="RecordMode" Content="原始数据模式"
+                                 IsChecked="{Binding Path=RecordMode, Converter={StaticResource EnumToBooleanConverter},
+                        ConverterParameter={x:Static config:RecordMode.RawData}}" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- ==================== 标准模式修复设置（仅标准模式显示） ==================== -->
+            <GroupBox Header="标准模式录制修复设置">
+                <GroupBox.Style>
+                    <Style TargetType="GroupBox">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RecordMode}" Value="RawData">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </GroupBox.Style>
+                <StackPanel>
+                    <ui:ToggleSwitch IsOn="{Binding FlvProcessorSplitOnScriptTag}"
+                                     OnContent="检测到可能缺少数据时分段" OffContent="检测到可能缺少数据时分段"/>
+                    <ui:ToggleSwitch IsOn="{Binding FlvProcessorDisableSplitOnH264AnnexB}"
+                                     OnContent="使用实验性花屏修复判定逻辑" OffContent="使用实验性花屏修复判定逻辑"/>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- ==================== 自动分段 ==================== -->
+            <GroupBox Header="自动分段">
+                <StackPanel>
+                    <RadioButton GroupName="Splitting" Name="CutDisabledRadioButton" Content="不自动分段"
+                                 IsChecked="{Binding Path=CuttingMode, Converter={StaticResource EnumToBooleanConverter},
+                        ConverterParameter={x:Static config:CuttingMode.Disabled}}" />
+                    <RadioButton GroupName="Splitting" Name="CutBySizeRadioButton" Content="根据文件大小自动分段"
+                                 IsChecked="{Binding Path=CuttingMode, Converter={StaticResource EnumToBooleanConverter},
+                        ConverterParameter={x:Static config:CuttingMode.BySize}}" />
+                    <RadioButton GroupName="Splitting" Name="CutByTimeRadioButton" Content="根据视频时间自动分段"
+                                 IsChecked="{Binding Path=CuttingMode, Converter={StaticResource EnumToBooleanConverter},
+                        ConverterParameter={x:Static config:CuttingMode.ByTime}}" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0"
+                                Visibility="{Binding ElementName=CutDisabledRadioButton,Path=IsChecked,Converter={StaticResource InvertBooleanToVisibilityCollapsedConverter}}">
+                        <TextBlock Text="每"/>
+                        <TextBox Margin="5,0" Width="100" Text="{Binding CuttingNumber,Delay=500}" ui:TextBoxHelper.IsDeleteButtonVisible="False"/>
+                        <TextBlock Text="MiB" Visibility="{Binding ElementName=CutBySizeRadioButton,Path=IsChecked,Converter={StaticResource BooleanToVisibilityCollapsedConverter}}"/>
+                        <TextBlock Text="分钟" Visibility="{Binding ElementName=CutByTimeRadioButton,Path=IsChecked,Converter={StaticResource BooleanToVisibilityCollapsedConverter}}"/>
+                        <TextBlock Text=" 保存为一个文件"/>
+                    </StackPanel>
+
+                    <ui:ToggleSwitch IsOn="{Binding CuttingByTitle}"
+                                     OnContent="改标题后自动分段" OffContent="改标题后自动分段"/>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- ==================== 直播封面 ==================== -->
+            <GroupBox Header="直播封面">
+                <ui:ToggleSwitch IsOn="{Binding SaveStreamCover}"
+                                 OnContent="录制时同时保存直播封面" OffContent="录制时同时保存直播封面"/>
+            </GroupBox>
+
+            <!-- ==================== 开播通知 ==================== -->
+            <GroupBox Header="开播通知">
+                <ui:ToggleSwitch IsOn="{Binding WpfNotifyStreamStart}"
+                                 OnContent="直播间开播时弹出系统通知" OffContent="直播间开播时弹出系统通知"/>
+            </GroupBox>
+
+            <!-- ==================== 录制画质 ==================== -->
+            <GroupBox Header="录制画质">
+                <StackPanel>
+                    <ComboBox x:Name="QualityComboBox"
+                              Width="240" HorizontalAlignment="Left"
+                              DisplayMemberPath="DisplayName"
+                              SelectedValuePath="Qn"/>
+                    <TextBlock x:Name="QualityHintText" Margin="0,8,0,0"
+                               FontSize="12" Foreground="#888888" TextWrapping="Wrap"/>
+                </StackPanel>
+            </GroupBox>
+
+        
+            <!-- ==================== 文件名 ==================== -->
+            <GroupBox Header="{l:Loc Settings_FileName_Title}">
+                <StackPanel MaxWidth="450" HorizontalAlignment="Left">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="FileNameTemplateTextBox"
+                                 Grid.Column="0"
+                                 Text="{Binding FileNameRecordTemplate, Mode=OneWay}"
+                                 TextChanged="FileNameTemplateTextBox_TextChanged"
+                                 LostFocus="FileNameTemplateTextBox_LostFocus"
+                                 IsEnabled="{Binding IsCustomFileNameTemplate, ElementName=SettingsPageRoot, Mode=OneWay}"
+                                 ui:TextBoxHelper.IsDeleteButtonVisible="False"/>
+                        <CheckBox Grid.Column="1"
+                                  Content="默认"
+                                  VerticalAlignment="Center"
+                                  Margin="10,0,0,0"
+                                  IsChecked="{Binding IsDefaultFileNameTemplate, ElementName=SettingsPageRoot, Mode=TwoWay}"/>
+                    </Grid>
+                    <Button Margin="0,10,0,5" HorizontalAlignment="Left" Content="测试" Click="TestFileNameTemplate_Button_Click"/>
+                    <Border x:Name="FileNameTestResultArea" d:DataContext="{d:DesignInstance Type=t:FileNameTemplateOutput}" Visibility="Collapsed"
+                            BorderBrush="{DynamicResource SystemControlBackgroundBaseMediumBrush}" CornerRadius="5" BorderThickness="1" Padding="5">
+                        <StackPanel Orientation="Vertical" Margin="0">
+                            <TextBlock Text="测试结果 "/>
+                            <TextBlock Text="{Binding ErrorMessage,Mode=OneWay}" Margin="0,5"/>
+                            <TextBox IsReadOnly="True" Text="{Binding RelativePath,Mode=OneWay}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </GroupBox>
+            <!-- ==================== Cookie ==================== -->
+            <GroupBox Header="Cookie">
+                <StackPanel MaxWidth="455" HorizontalAlignment="Left">
+                    <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#888888" Margin="0,0,0,6"
+                               Text="Cookie 用于获取直播间信息、直播流地址、连接弹幕服务器。默认使用用户页面扫码登录后自动获取的 Cookie。"/>
+                    <TextBlock x:Name="CookieStatusText" Margin="0,0,0,6" FontWeight="Bold"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="CookieTextBox"
+                                 Grid.Column="0"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 MinHeight="32" MaxHeight="32"
+                                 IsEnabled="{Binding IsCustomCookie, ElementName=SettingsPageRoot, Mode=OneWay}"
+                                 LostFocus="CookieTextBox_LostFocus"
+                                 ui:TextBoxHelper.IsDeleteButtonVisible="False"/>
+                        <CheckBox Grid.Column="1"
+                                  Content="默认"
+                                  VerticalAlignment="Top"
+                                  Margin="10,0,0,0"
+                                  IsChecked="{Binding IsDefaultCookie, ElementName=SettingsPageRoot, Mode=TwoWay}"/>
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="重置Cookie" Click="ResetCookie_Click"/>
+                        <Button Content="测试Cookie" Click="TestCookie_Click" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- ==================== 录制结束后自动化 ==================== -->
+            <GroupBox Header="录制结束后自动化">
+                <StackPanel>
+                    <CheckBox x:Name="AutoConvertCheckBox" Content="自动转换弹幕（XML → ASS）"
+                              Checked="AutoConvertCheckBox_Changed" Unchecked="AutoConvertCheckBox_Changed"/>
+                    <CheckBox x:Name="AutoCompressCheckBox" Content="自动压制视频" Margin="0,7,0,0"
+                              Checked="AutoCompressCheckBox_Changed" Unchecked="AutoCompressCheckBox_Changed"/>
+                    <CheckBox x:Name="AutoUploadCheckBox" Content="自动上传 B 站" Margin="0,7,0,0"
+                              Checked="AutoUploadCheckBox_Changed" Unchecked="AutoUploadCheckBox_Changed"/>
+                </StackPanel>
+            </GroupBox>
+</ui:SimpleStackPanel>
+    </ScrollViewer>
+</ui:Page>

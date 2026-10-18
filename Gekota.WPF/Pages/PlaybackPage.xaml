@@ -1,0 +1,71 @@
+<ui:Page
+    x:Class="Gekota.WPF.Pages.PlaybackPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:local="clr-namespace:Gekota.WPF.Pages"
+    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    mc:Ignorable="d"
+    x:Name="ThePlaybackPage"
+    d:DesignHeight="800" d:DesignWidth="1100"
+    DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=local:RootPage},Path=DataContext.Recorder,Mode=OneWay}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="120"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 上方：房间卡片条 -->
+        <Border Grid.Row="0"
+                BorderBrush="{DynamicResource SystemControlBackgroundAccentBrush}"
+                BorderThickness="0,0,0,1">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled"
+                          VerticalContentAlignment="Stretch">
+                <StackPanel x:Name="RoomStrip" Orientation="Horizontal" Margin="8"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 下方：内嵌直播间网页 + 剪刀 -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Background="Black">
+                <wv2:WebView2 x:Name="LiveWebView"/>
+                <TextBlock x:Name="StatusOverlay"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="#CCFFFFFF" FontSize="14" TextWrapping="Wrap"
+                           TextAlignment="Center" Margin="24" IsHitTestVisible="False"
+                           Text="请选择上方房间"/>
+            </Grid>
+
+            <Border Grid.Row="1" Background="#22000000" Padding="8,6">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="OpenFolderButton" Click="OpenFolderButton_Click"
+                            Width="48" Height="48" Margin="0,0,8,0"
+                            ToolTip="打开录制文件夹">
+                        <ui:PathIcon Width="20" Height="20" Foreground="White"
+                                     Style="{StaticResource PathIconDataFolder}"/>
+                    </Button>
+                    <Button x:Name="CaptureButton" Click="CaptureButton_Click"
+                            Width="48" Height="48" Margin="0,0,8,0"
+                            ToolTip="拍照（捕捉当前帧）">
+                        <ui:PathIcon Width="20" Height="20" Foreground="White"
+                                     Style="{StaticResource PathIconDataCamera}"/>
+                    </Button>
+                    <Button x:Name="ClipButton" Click="ClipButton_Click"
+                            Width="48" Height="48"
+                            ToolTip="剪切当前片段">
+                        <ui:PathIcon x:Name="ClipIcon" Width="20" Height="20" Foreground="White"
+                                     Style="{StaticResource PathIconDataContentCut}"/>
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</ui:Page>

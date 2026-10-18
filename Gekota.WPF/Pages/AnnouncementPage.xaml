@@ -1,0 +1,135 @@
+<ui:Page
+    x:Class="Gekota.WPF.Pages.AnnouncementPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    mc:Ignorable="d"
+    d:DesignHeight="1000" d:DesignWidth="800"
+    Title="AnnouncementPage">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="30,24" MaxWidth="720" HorizontalAlignment="Left">
+
+            <!-- 开头 -->
+            <TextBlock Text="欢迎使用 Gekota" FontSize="30" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+            <TextBlock Margin="0,10,0,0" FontSize="16" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
+                       Text="这是一个可以让你解放双手（解放手，解放手手）的一站式录播软件。"/>
+
+            <TextBlock Text="使用流程" FontSize="22" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                       Margin="0,32,0,4"/>
+
+            <!-- 1 登录 -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <ui:PathIcon Style="{StaticResource PathIconDataAccountOutline}" Width="20" Height="20"
+                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="1. 登录"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
+                               Text="在「用户」页面扫码登录哔哩哔哩"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 2 添加房间 -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <ui:PathIcon Style="{StaticResource PathIconDataPlus}" Width="20" Height="20"
+                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="2. 添加房间"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
+                               Text="在「房间列表」添加要录制的直播间"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 3 录制 -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <ui:PathIcon Style="{StaticResource PathIconDataRecordRec}" Width="20" Height="20"
+                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="3. 开始录制"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
+                               Text="主播开播后自动开始录制，无需手动操作"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 4 实时播放 -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <ui:PathIcon Style="{StaticResource PathIconDataPlayCircleOutline}" Width="20" Height="20"
+                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="4. 实时播放"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
+                               Text="在「实时播放」页面观看直播画面"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 5 切片 & 截屏（录播之后） -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ui:PathIcon Style="{StaticResource PathIconDataContentCut}" Width="18" Height="18"
+                                     Foreground="Black"/>
+                        <ui:PathIcon Style="{StaticResource PathIconDataCamera}" Width="18" Height="18"
+                                     Foreground="Black" Margin="3,0,0,0"/>
+                    </StackPanel>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="5. 切片 / 截屏"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
+                               Text="录播结束后，在「实时播放」页面右下角：✂ 剪切当前片段、📷 截取画面"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 6 弹幕转换 & 压制 -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ui:PathIcon Style="{StaticResource PathIconDataMerge}" Width="18" Height="18"
+                                     Foreground="Black"/>
+                        <ui:PathIcon Style="{StaticResource PathIconDataToolboxOutline}" Width="18" Height="18"
+                                     Foreground="Black" Margin="3,0,0,0"/>
+                    </StackPanel>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="6. 弹幕转换 / 视频压制"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
+                               Text="在「工具箱」中转换弹幕、压制视频"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 7 自动上传 -->
+            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
+                        BorderBrush="#44FFFFFF" BorderThickness="1">
+                    <ui:PathIcon Style="{StaticResource PathIconDataCloudCheckOutline}" Width="20" Height="20"
+                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="7. 自动上传"/>
+                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
+                               Text="压制完成后自动投稿到 B 站"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- 结尾 -->
+            <TextBlock Margin="0,32,0,0" FontSize="15" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
+                       Foreground="#FF000000"
+                       Text="如果有问题，请点击「关于」页面（声明页）的联系方式。"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</ui:Page>

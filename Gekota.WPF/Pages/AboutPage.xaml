@@ -1,0 +1,288 @@
+<ui:Page
+    x:Class="Gekota.WPF.Pages.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:l="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
+    l:LocalizeDictionary.DesignCulture=""
+    l:ResxLocalizationProvider.DefaultAssembly="Gekota.WPF"
+    l:ResxLocalizationProvider.DefaultDictionary="Strings"
+    xmlns:m="clr-namespace:Gekota.WPF.Models"
+    xmlns:s="clr-namespace:System;assembly=mscorlib"
+    xmlns:local="clr-namespace:Gekota.WPF.Pages"
+    mc:Ignorable="d"
+    d:DesignHeight="900" d:DesignWidth="900"
+    Title="AboutPage">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="25,15" d:DataContext="{d:DesignInstance IsDesignTimeCreatable=True, Type=m:AboutModel}">
+            <Grid.DataContext>
+                <m:AboutModel/>
+            </Grid.DataContext>
+            <Grid.Resources>
+                <!-- 忽略此处一个 Error 是 Visual Studio 的 bug -->
+                <ResourceDictionary Source="pack://application:,,,/ModernWpf;component/DensityStyles/Compact.xaml"/>
+            </Grid.Resources>
+
+            <StackPanel>
+
+                <!-- ============ 头部：图标 + 标题 + 副标题 ============ -->
+                <StackPanel Orientation="Horizontal">
+                    <Border Height="90" Margin="0,5,18,0" VerticalAlignment="Center">
+                        <Image Source="pack://application:,,,/Gekota.WPF;component/ico.ico"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Gekota" FontSize="52" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+                        <TextBlock Text="你的哔哩哔哩录播切片小助手" FontSize="16" Foreground="#888888"
+                                   FontFamily="Microsoft YaHei" Margin="2,8,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ========== 五位主播圆角矩形卡片 ========== -->
+                <WrapPanel Margin="0,25,0,0" Orientation="Horizontal">
+
+                    <!-- 贝拉 BELLA -->
+                    <ui:HyperlinkButton NavigateUri="https://space.bilibili.com/672353429"
+                                        Padding="0" Margin="0,5,12,5" ToolTip="贝拉kira"
+                                        FocusVisualStyle="{x:Null}">
+                        <Border CornerRadius="10" ClipToBounds="True" Width="850" Height="85">
+                            <Image Source="pack://application:,,,/Gekota.WPF;component/Assets/bella.png"
+                                   Stretch="UniformToFill"/>
+                        </Border>
+                    </ui:HyperlinkButton>
+
+                    <!-- 嘉然 DIANA -->
+                    <ui:HyperlinkButton NavigateUri="https://space.bilibili.com/672328094"
+                                        Padding="0" Margin="0,5,12,5" ToolTip="嘉然今天吃什么"
+                                        FocusVisualStyle="{x:Null}">
+                        <Border CornerRadius="10" ClipToBounds="True" Width="850" Height="85">
+                            <Image Source="pack://application:,,,/Gekota.WPF;component/Assets/diana.png"
+                                   Stretch="UniformToFill"/>
+                        </Border>
+                    </ui:HyperlinkButton>
+
+                    <!-- 乃琳 EILEEN -->
+                    <ui:HyperlinkButton NavigateUri="https://space.bilibili.com/672342685"
+                                        Padding="0" Margin="0,5,12,5" ToolTip="乃琳Queen"
+                                        FocusVisualStyle="{x:Null}">
+                        <Border CornerRadius="10" ClipToBounds="True" Width="850" Height="85">
+                            <Image Source="pack://application:,,,/Gekota.WPF;component/Assets/eileen.png"
+                                   Stretch="UniformToFill"/>
+                        </Border>
+                    </ui:HyperlinkButton>
+
+                    <!-- 心宜 FIONA -->
+                    <ui:HyperlinkButton NavigateUri="https://space.bilibili.com/3537115310721181"
+                                        Padding="0" Margin="0,5,12,5" ToolTip="心宜不是心仪"
+                                        FocusVisualStyle="{x:Null}">
+                        <Border CornerRadius="10" ClipToBounds="True" Width="850" Height="85">
+                            <Image Source="pack://application:,,,/Gekota.WPF;component/Assets/fiona.png"
+                                   Stretch="UniformToFill"/>
+                        </Border>
+                    </ui:HyperlinkButton>
+
+                    <!-- 思诺 GLADYS -->
+                    <ui:HyperlinkButton NavigateUri="https://space.bilibili.com/3537115310721781"
+                                        Padding="0" Margin="0,5,12,5" ToolTip="思诺Snow"
+                                        FocusVisualStyle="{x:Null}">
+                        <Border CornerRadius="10" ClipToBounds="True" Width="850" Height="85">
+                            <Image Source="pack://application:,,,/Gekota.WPF;component/Assets/gladys.png"
+                                   Stretch="UniformToFill"/>
+                        </Border>
+                    </ui:HyperlinkButton>
+
+                </WrapPanel>
+
+                <!-- ============ 版本 + 版权 ============ -->
+                <StackPanel Margin="0,35,0,0">
+                    <TextBlock FontSize="18" FontFamily="Microsoft YaHei">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{l:StringFormatConverter}">
+                                <l:BLoc Key="About_Version"/>
+                                <Binding Path="InformationalVersion" Mode="OneWay"/>
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <TextBlock FontSize="18" FontFamily="Microsoft YaHei" Text="版权所有"/>
+                        <TextBlock FontSize="18" FontFamily="Microsoft YaHei" x:Name="CopyrightTextBlock"/>
+                    </StackPanel>
+
+                    <TextBlock FontSize="18" FontFamily="Microsoft YaHei" Margin="0,5,0,0"
+                               Text="本软件为免费软件。"/>
+                    <TextBlock FontSize="18" FontFamily="Microsoft YaHei" Margin="0,5,0,0"
+                               Text="本软件仅供学习交流使用，禁止用于任何商业用途。"/>
+                </StackPanel>
+
+                <!-- ============ 特别鸣谢 ============ -->
+                <TextBlock Text="特别鸣谢" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                           Margin="0,40,0,15"/>
+                <StackPanel>
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei">
+                        <Run Text="· "/>
+                        <Run Text="mikufans 录播姬" FontWeight="Bold"/>
+                        <Run Text=" 的开源支持"/>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="18,8,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://github.com/BililiveRecorder/BililiveRecorder"
+                            NavigateUri="https://github.com/BililiveRecorder/BililiveRecorder"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                        <Run Text="· "/>
+                        <Run Text="DanmakuFactory" FontWeight="Bold"/>
+                        <Run Text=" 的弹幕转换"/>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://github.com/hihkm/DanmakuFactory"
+                            NavigateUri="https://github.com/hihkm/DanmakuFactory"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                        <Run Text="· "/>
+                        <Run Text="ShanaEncoder" FontWeight="Bold"/>
+                        <Run Text=" 的视频压制"/>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://shana.pe.kr/"
+                            NavigateUri="https://shana.pe.kr/"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                        <Run Text="· "/>
+                        <Run Text="biliup / biliup-rs" FontWeight="Bold"/>
+                        <Run Text=" 的自动上传"/>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://github.com/biliup/biliup-rs"
+                            NavigateUri="https://github.com/biliup/biliup-rs"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+
+                </StackPanel>
+
+                <!-- ============ 联系方式 ============ -->
+                <TextBlock Text="联系方式" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                           Margin="0,40,0,15"/>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="哔哩哔哩："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" Content="gua_02014"
+                            NavigateUri="https://space.bilibili.com/26187233"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="18,8,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="主页："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://space.bilibili.com/26187233"
+                            NavigateUri="https://space.bilibili.com/26187233"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ 开源许可 ============ -->
+                <TextBlock Text="开源许可" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                           Margin="0,40,0,15"/>
+                <StackPanel>
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" TextWrapping="Wrap">
+                        <Run Text="本项目基于 "/>
+                        <Run Text="BililiveRecorder（录播姬）" FontWeight="Bold"/>
+                        <Run Text=" 修改而来，遵循 "/>
+                        <Run Text="GNU General Public License v3.0" FontWeight="Bold"/>
+                        <Run Text=" 协议开源。"/>
+                    </TextBlock>
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,10,0,0"
+                               Text="原始版权：Copyright © 2018-2026 Genteure"/>
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,4,0,0"
+                               Text="修改部分版权：Copyright © 2026 Gekota Contributors"/>
+                    <TextBlock FontSize="14" FontFamily="Microsoft YaHei" Margin="0,10,0,0" TextWrapping="Wrap"
+                               Foreground="#888888"
+                               Text="遵循 GPL-3.0：可自由使用、修改、分发，但衍生作品须同样以 GPL-3.0 协议开源，并保留原始版权声明。"/>
+                    <StackPanel Orientation="Horizontal" Margin="18,10,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="原始项目："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://github.com/BililiveRecorder/BililiveRecorder"
+                            NavigateUri="https://github.com/BililiveRecorder/BililiveRecorder"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="许可证全文："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://www.gnu.org/licenses/gpl-3.0.txt"
+                            NavigateUri="https://www.gnu.org/licenses/gpl-3.0.txt"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ============ 使用的库 ============ -->
+                <TextBlock Text="使用的库" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                           Margin="0,40,0,15" Visibility="Collapsed"/>
+                <ListView MaxHeight="400" BorderThickness="0" Background="Transparent" Visibility="Collapsed">
+                    <ListView.Items>
+                        <Label Content="Acornima"/>
+                        <Label Content="CliWrap"/>
+                        <Label Content="FastHashes"/>
+                        <Label Content="Fluid.Core"/>
+                        <Label Content="Flurl"/>
+                        <Label Content="Hardcodet.NotifyIcon.Wpf"/>
+                        <Label Content="HierarchicalPropertyDefault"/>
+                        <Label Content="Jint"/>
+                        <Label Content="JsonSubTypes"/>
+                        <Label Content="Microsoft.Bcl.AsyncInterfaces"/>
+                        <Label Content="Microsoft.Bcl.HashCode"/>
+                        <Label Content="Microsoft.Extensions.DependencyInjection"/>
+                        <Label Content="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+                        <Label Content="Microsoft.IO.RecyclableMemoryStream"/>
+                        <Label Content="Microsoft.Toolkit.Uwp.Notifications"/>
+                        <Label Content="ModernWpfUI"/>
+                        <Label Content="Nerdbank.Streams"/>
+                        <Label Content="Newtonsoft.Json"/>
+                        <Label Content="Parlot"/>
+                        <Label Content="Polly"/>
+                        <Label Content="Polly.Caching.Memory"/>
+                        <Label Content="Serilog"/>
+                        <Label Content="Serilog.Enrichers.Process"/>
+                        <Label Content="Serilog.Enrichers.Thread"/>
+                        <Label Content="Serilog.Exceptions"/>
+                        <Label Content="Serilog.Formatting.Compact"/>
+                        <Label Content="Serilog.Sinks.Async"/>
+                        <Label Content="Serilog.Sinks.Console"/>
+                        <Label Content="Serilog.Sinks.Debug"/>
+                        <Label Content="Serilog.Sinks.File"/>
+                        <Label Content="StructLinq"/>
+                        <Label Content="System.IO.Pipelines"/>
+                        <Label Content="System.Memory"/>
+                        <Label Content="TimeZoneConverter"/>
+                        <Label Content="WindowsAPICodePack-Core"/>
+                        <Label Content="WindowsAPICodePack-Shell"/>
+                        <Label Content="WPFLocalizeExtension"/>
+                        <Label Content="XAMLMarkupExtensions"/>
+                    </ListView.Items>
+                </ListView>
+
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</ui:Page>

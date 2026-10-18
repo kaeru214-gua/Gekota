@@ -1,0 +1,202 @@
+<Window
+    x:Class="Gekota.WPF.Controls.QuickSettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    mc:Ignorable="d"
+    d:DesignHeight="640" d:DesignWidth="920"
+    Title="快速设置" Width="920" Height="660"
+    WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="12">
+
+                <TextBlock Text="编码" FontSize="15" FontWeight="Bold" Margin="0,2,0,6"/>
+                <WrapPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="文件格式" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="ContainerBox" MinWidth="80" VerticalAlignment="Center">
+                            <ComboBoxItem Content="mp4" Tag="mp4"/>
+                            <ComboBoxItem Content="mkv" Tag="mkv"/>
+                            <ComboBoxItem Content="flv" Tag="flv"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="编解码器" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="VideoCodecBox" MinWidth="140" VerticalAlignment="Center" SelectionChanged="VideoCodec_SelectionChanged">
+                            <ComboBoxItem Content="H264(NVENC)" Tag="h264_nvenc"/>
+                            <ComboBoxItem Content="H264(QSV)" Tag="h264_qsv"/>
+                            <ComboBoxItem Content="H264(AMF)" Tag="h264_amf"/>
+                            <ComboBoxItem Content="H264 (libx264)" Tag="libx264"/>
+                            <ComboBoxItem Content="HEVC(NVENC)" Tag="hevc_nvenc"/>
+                            <ComboBoxItem Content="HEVC (libx265)" Tag="libx265"/>
+                            <ComboBoxItem Content="MPEG4" Tag="mpeg4"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="配置" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="ProfileBox" MinWidth="100" VerticalAlignment="Center">
+                            <ComboBoxItem Content="none" Tag="none"/>
+                            <ComboBoxItem Content="baseline" Tag="baseline"/>
+                            <ComboBoxItem Content="main" Tag="main"/>
+                            <ComboBoxItem Content="high" Tag="high"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="级别" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="LevelBox" MinWidth="70" VerticalAlignment="Center">
+                            <ComboBoxItem Content="auto" Tag="auto"/>
+                            <ComboBoxItem Content="4.0" Tag="4.0"/>
+                            <ComboBoxItem Content="4.1" Tag="4.1"/>
+                            <ComboBoxItem Content="4.2" Tag="4.2"/>
+                            <ComboBoxItem Content="5.0" Tag="5.0"/>
+                            <ComboBoxItem Content="5.1" Tag="5.1"/>
+                            <ComboBoxItem Content="5.2" Tag="5.2"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="预设" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="PresetBox" MinWidth="100" VerticalAlignment="Center">
+                            <ComboBoxItem Content="default" Tag="default"/>
+                            <ComboBoxItem Content="slow" Tag="slow"/>
+                            <ComboBoxItem Content="medium" Tag="medium"/>
+                            <ComboBoxItem Content="fast" Tag="fast"/>
+                            <ComboBoxItem Content="hp" Tag="hp"/>
+                            <ComboBoxItem Content="hq" Tag="hq"/>
+                            <ComboBoxItem Content="p1" Tag="p1"/><ComboBoxItem Content="p2" Tag="p2"/>
+                            <ComboBoxItem Content="p3" Tag="p3"/><ComboBoxItem Content="p4" Tag="p4"/>
+                            <ComboBoxItem Content="p5" Tag="p5"/><ComboBoxItem Content="p6" Tag="p6"/>
+                            <ComboBoxItem Content="p7" Tag="p7"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="调整" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="TuneBox" MinWidth="90" VerticalAlignment="Center">
+                            <ComboBoxItem Content="hq" Tag="hq"/>
+                            <ComboBoxItem Content="ll" Tag="ll"/>
+                            <ComboBoxItem Content="ull" Tag="ull"/>
+                            <ComboBoxItem Content="lossless" Tag="lossless"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="帧率" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="FpsBox" Width="60" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <CheckBox x:Name="CfrBox" Content="CFR" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="关键帧(秒)" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="KeyframeIntervalBox" Width="60" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </WrapPanel>
+
+                <TextBlock Text="码率模式" Margin="0,6,0,2"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <RadioButton x:Name="RateQualityRadio" Content="质量" GroupName="RateMode" Margin="0,0,16,0" Checked="RateMode_Changed"/>
+                    <RadioButton x:Name="RateQuantRadio" Content="量化器" GroupName="RateMode" Margin="0,0,16,0" Checked="RateMode_Changed"/>
+                    <RadioButton x:Name="RateBitrateRadio" Content="比特率" GroupName="RateMode" Checked="RateMode_Changed"/>
+                </StackPanel>
+                <StackPanel x:Name="BitratePanel" Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="视频比特率(kbps)" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox x:Name="VideoBitrateBox" Width="90" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <ComboBox x:Name="RateControlBox" Width="90" VerticalAlignment="Center">
+                        <ComboBoxItem Content="const" Tag="const"/>
+                        <ComboBoxItem Content="variable" Tag="variable"/>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel x:Name="QualityPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,8">
+                    <TextBlock Text="视频质量(CQ/CRF)" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox x:Name="QualityBox" Width="90" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel x:Name="QuantizerPanel" Orientation="Horizontal" Visibility="Collapsed" Margin="0,0,0,8">
+                    <TextBlock Text="视频量化器(QP)" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBox x:Name="QuantizerBox" Width="90" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <TextBlock Text="画面" FontSize="15" FontWeight="Bold" Margin="0,10,0,6"/>
+                <WrapPanel>
+                    <CheckBox x:Name="AutoResolutionBox" Content="分辨率自动匹配源文件" VerticalAlignment="Center" Margin="0,0,16,8"
+                              Checked="AutoResolution_Changed" Unchecked="AutoResolution_Changed"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="尺寸" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="OutputWidthBox" Width="70" VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xD7;" VerticalAlignment="Center" Margin="4,0"/>
+                        <TextBox x:Name="OutputHeightBox" Width="70" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="缩放过滤器" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="ScaleFilterBox" MinWidth="110" VerticalAlignment="Center">
+                            <ComboBoxItem Content="fast_bilinear" Tag="fast_bilinear"/>
+                            <ComboBoxItem Content="bilinear" Tag="bilinear"/>
+                            <ComboBoxItem Content="bicubic" Tag="bicubic"/>
+                            <ComboBoxItem Content="neighbor" Tag="neighbor"/>
+                            <ComboBoxItem Content="area" Tag="area"/>
+                            <ComboBoxItem Content="gauss" Tag="gauss"/>
+                            <ComboBoxItem Content="lanczos" Tag="lanczos"/>
+                            <ComboBoxItem Content="spline" Tag="spline"/>
+                        </ComboBox>
+                    </StackPanel>
+                </WrapPanel>
+
+                <TextBlock Text="音频" FontSize="15" FontWeight="Bold" Margin="0,10,0,6"/>
+                <WrapPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="编解码器" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="AudioCodecBox" MinWidth="130" VerticalAlignment="Center">
+                            <ComboBoxItem Content="AAC (libfdk_aac)" Tag="libfdk_aac"/>
+                            <ComboBoxItem Content="AAC (内置)" Tag="aac"/>
+                            <ComboBoxItem Content="AC3" Tag="ac3"/>
+                            <ComboBoxItem Content="MP3" Tag="libmp3lame"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="AAC档位" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="AacProfileBox" MinWidth="100" VerticalAlignment="Center">
+                            <ComboBoxItem Content="LC" Tag="aac_low"/>
+                            <ComboBoxItem Content="HE-AAC" Tag="aac_he"/>
+                            <ComboBoxItem Content="HE-AACv2" Tag="aac_he_v2"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="音频比特率(kbps)" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox x:Name="AudioBitrateBox" Width="70" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="声道" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="AudioChannelsBox" MinWidth="100" VerticalAlignment="Center">
+                            <ComboBoxItem Content="原版" Tag="0"/>
+                            <ComboBoxItem Content="单声道 (1)" Tag="1"/>
+                            <ComboBoxItem Content="立体声 (2)" Tag="2"/>
+                            <ComboBoxItem Content="5.1 (6)" Tag="6"/>
+                            <ComboBoxItem Content="7.1 (8)" Tag="8"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,16,8">
+                        <TextBlock Text="采样率(Hz)" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox x:Name="SampleRateBox" MinWidth="80" VerticalAlignment="Center">
+                            <ComboBoxItem Content="44100" Tag="44100"/>
+                            <ComboBoxItem Content="48000" Tag="48000"/>
+                            <ComboBoxItem Content="96000" Tag="96000"/>
+                        </ComboBox>
+                    </StackPanel>
+                </WrapPanel>
+
+                <CheckBox x:Name="AutoCompressBox" Content="录播结束后自动压制" Margin="0,10,0,6"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" Padding="10" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource SystemControlBackgroundChromeMediumBrush}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="恢复默认" Width="100" Height="32" Margin="0,0,8,0" Click="Reset_Click"/>
+                <Button Content="取消" Width="100" Height="32" Margin="0,0,8,0" Click="Cancel_Click"/>
+                <Button Content="保存" Width="100" Height="32" Click="Save_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

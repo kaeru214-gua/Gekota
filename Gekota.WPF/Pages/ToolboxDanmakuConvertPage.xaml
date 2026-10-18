@@ -1,0 +1,156 @@
+<ui:Page
+    x:Class="Gekota.WPF.Pages.ToolboxDanmakuConvertPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    xmlns:controls="clr-namespace:Gekota.WPF.Controls"
+    mc:Ignorable="d"
+    DataContext="{x:Null}"
+    d:DesignHeight="760" d:DesignWidth="1000"
+    Title="ToolboxDanmakuConvertPage">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock FontSize="20" TextAlignment="Center" Text="弹幕转换"/>
+        <TextBlock Grid.Row="1" Margin="2" TextAlignment="Center"
+                   Text="使用 DanmakuFactory 将录播弹幕 XML 转换为 ASS 字幕"/>
+        <StackPanel Grid.Row="2" Margin="5,5,5,0" HorizontalAlignment="Center" Orientation="Horizontal">
+            <Button Margin="0,0,5,0" Content="添加文件" Click="AddFile_Click"/>
+            <Button Content="转换" Click="Convert_Click"/>
+        </StackPanel>
+
+        <Grid Grid.Row="3" Margin="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="470"/>
+            </Grid.ColumnDefinitions>
+
+            <ListView x:Name="listView" AllowDrop="True" Drop="DragDrop">
+                <ListView.View>
+                    <GridView AllowsColumnReorder="False">
+                        <GridViewColumn>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Padding="2" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                            Content="移除" Click="RemoveFile_Click"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="文件路径" DisplayMemberBinding="{Binding}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                          ResizeDirection="Columns"/>
+
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="OptionsRoot" Margin="4">
+
+                    <!-- ===== 画面设置 ===== -->
+                    <TextBlock Text="画面设置" FontSize="15" Margin="0,8,0,6"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <WrapPanel>
+                            <controls:TitleStepper Title="滚动弹幕显示区域"
+                                                   Minimum="0.1" Maximum="1.0" Step="0.1" Decimals="1"
+                                                   Value="{Binding ScrollArea, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="全部弹幕显示区域"
+                                                   Minimum="0.1" Maximum="1.0" Step="0.1" Decimals="1"
+                                                   Value="{Binding DisplayArea, Mode=TwoWay}"/>
+                            <CheckBox Content="固定弹幕转滚动" VerticalAlignment="Center" Margin="0,0,10,5"
+                                      ToolTip="把顶部/底部固定弹幕改为滚动显示（特殊弹幕不受影响）"
+                                      IsChecked="{Binding ForceScroll, Mode=TwoWay}"/>
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- ===== 弹幕设置 ===== -->
+                    <TextBlock Text="弹幕设置" FontSize="15" Margin="0,14,0,6"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <WrapPanel>
+                            <controls:TitleStepper Title="滚动弹幕通过时间"
+                                                   Minimum="0.1" Step="0.1" Decimals="1"
+                                                   Value="{Binding ScrollTime, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="固定弹幕停留时间"
+                                                   Minimum="0.1" Step="0.1" Decimals="1"
+                                                   Value="{Binding FixTime, Mode=TwoWay}"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,5">
+                                <controls:TitleStepper Title="弹幕密度" Minimum="-1" Step="1" Decimals="0"
+                                                       Value="{Binding Density, Mode=TwoWay}"/>
+                                <TextBlock Text="说明" Foreground="Red" FontWeight="Bold"
+                                           VerticalAlignment="Center" Margin="8,0,0,0" Cursor="Hand"
+                                           ToolTip="-1:不重叠   0:无限制&#x0A;其他:表示限定条数"
+                                           MouseLeftButtonUp="DensityTip_Click"/>
+                            </StackPanel>
+
+                            <StackPanel Margin="0,4,0,0">
+                                <TextBlock Text="按类型屏蔽" Margin="0,0,0,2"/>
+                                <WrapPanel>
+                                    <CheckBox Content="左右滚动" Margin="0,0,10,0" IsChecked="{Binding BlockL2R, Mode=TwoWay}"/>
+                                    <CheckBox Content="右左滚动" Margin="0,0,10,0" IsChecked="{Binding BlockR2L, Mode=TwoWay}"/>
+                                    <CheckBox Content="顶部固定" Margin="0,0,10,0" IsChecked="{Binding BlockTop, Mode=TwoWay}"/>
+                                    <CheckBox Content="底部固定" Margin="0,0,10,0" IsChecked="{Binding BlockBottom, Mode=TwoWay}"/>
+                                    <CheckBox Content="特殊" Margin="0,0,10,0" IsChecked="{Binding BlockSpecial, Mode=TwoWay}"/>
+                                    <CheckBox Content="非白色" Margin="0,0,10,0" IsChecked="{Binding BlockColor, Mode=TwoWay}"/>
+                                    <CheckBox Content="内容重复" Margin="0,0,10,0" IsChecked="{Binding BlockRepeat, Mode=TwoWay}"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- ===== 文字设置 ===== -->
+                    <TextBlock Text="文字设置" FontSize="15" Margin="0,14,0,6"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <WrapPanel>
+                            <controls:TitleStepper Title="字体大小" Minimum="1" Step="1" Decimals="0"
+                                                   Value="{Binding FontSize, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="阴影" Minimum="0" Maximum="4" Step="1" Decimals="0"
+                                                   Value="{Binding Shadow, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="不透明度" Minimum="1" Maximum="255" Step="1" Decimals="0"
+                                                   Value="{Binding Opacity, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="描边" Minimum="0" Maximum="4" Step="1" Decimals="0"
+                                                   Value="{Binding Outline, Mode=TwoWay}"/>
+                            <CheckBox Content="粗体" VerticalAlignment="Center" Margin="0,0,10,5"
+                                      IsChecked="{Binding Bold, Mode=TwoWay}"/>
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- ===== 其他（DF 有、flutter GUI 未暴露）===== -->
+                    <TextBlock Text="其他设置" FontSize="15" Margin="0,14,0,6"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,10,5">
+                                <TextBlock Text="字体" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBox Width="150" Text="{Binding FontName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <controls:TitleStepper Title="描边模糊半径" Minimum="0" Step="1" Decimals="0"
+                                                   Value="{Binding OutlineBlur, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="描边不透明度" Minimum="1" Maximum="255" Step="1" Decimals="0"
+                                                   Value="{Binding OutlineOpacity, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="行间距" Minimum="0" Step="1" Decimals="0"
+                                                   Value="{Binding LineSpacing, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="顶部距离" Minimum="0" Step="1" Decimals="0"
+                                                   Value="{Binding TopMargin, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="底部距离" Minimum="0" Step="1" Decimals="0"
+                                                   Value="{Binding BottomMargin, Mode=TwoWay}"/>
+                            <controls:TitleStepper Title="时间偏移" Step="0.1" Decimals="1"
+                                                   Value="{Binding TimeShift, Mode=TwoWay}"/>
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- ===== 自动化 ===== -->
+                    <CheckBox Content="录播结束后自动转换" Margin="0,14,0,12"
+                              IsChecked="{Binding AutoConvertEnabled, Mode=TwoWay}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</ui:Page>

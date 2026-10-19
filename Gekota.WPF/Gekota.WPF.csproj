@@ -68,6 +68,8 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
@@ -95,6 +97,8 @@
     <Compile Include="Services\BiliUploadSettings.cs" />
     <Compile Include="Services\BiliUploadSession.cs" />
     <Compile Include="Services\BiliUploadQueue.cs" />
+    <Compile Include="Services\GitHubReleaseService.cs" />
+    <Compile Include="Services\SelfUpdater.cs" />
     <Compile Include="Services\MediaProbe.cs" />
     <Compile Include="Services\CompressSession.cs" />
     <Compile Include="Services\CompressFileItem.cs" />

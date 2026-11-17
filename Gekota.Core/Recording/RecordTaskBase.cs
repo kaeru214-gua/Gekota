@@ -395,47 +395,34 @@ namespace Gekota.Core.Recording
             if (string.IsNullOrWhiteSpace(allowedQn)) return Array.Empty<StreamCodecQn>();
 
             var qns = allowedQn!.Split(QnParseSeparator, StringSplitOptions.RemoveEmptyEntries)
-                .Select(static x =>
+                .SelectMany(static x =>
                 {
+                    // 纯数字 = 不限定编码：AVC 优先、HEVC 兜底。
+                    // B 站不少直播间「原画」只提供 HEVC，写死 AVC 会一直匹配失败。
                     if (int.TryParse(x, out var num))
                     {
-                        return new StreamCodecQn
+                        return new[]
                         {
-                            Qn = num,
-                            Codec = StreamCodec.AVC
+                            new StreamCodecQn { Qn = num, Codec = StreamCodec.AVC },
+                            new StreamCodecQn { Qn = num, Codec = StreamCodec.HEVC },
                         };
                     }
-                    else if (x.StartsWith("avc", StringComparison.OrdinalIgnoreCase))
+
+                    if (x.StartsWith("avc", StringComparison.OrdinalIgnoreCase) && int.TryParse(x[3..], out num))
                     {
-                        if (int.TryParse(x[3..], out num))
-                        {
-                            return new StreamCodecQn
-                            {
-                                Qn = num,
-                                Codec = StreamCodec.AVC
-                            };
-                        }
+                        return new[] { new StreamCodecQn { Qn = num, Codec = StreamCodec.AVC } };
                     }
-                    else if (x.StartsWith("hevc", StringComparison.OrdinalIgnoreCase))
+
+                    if (x.StartsWith("hevc", StringComparison.OrdinalIgnoreCase) && int.TryParse(x[4..], out num))
                     {
-                        if (int.TryParse(x[4..], out num))
-                        {
-                            return new StreamCodecQn
-                            {
-                                Qn = num,
-                                Codec = StreamCodec.HEVC
-                            };
-                        }
+                        return new[] { new StreamCodecQn { Qn = num, Codec = StreamCodec.HEVC } };
                     }
 
                     // invalid
-                    return new StreamCodecQn
-                    {
-                        Qn = -1,
-                        Codec = StreamCodec.AVC
-                    };
+                    return Array.Empty<StreamCodecQn>();
                 })
                 .Where(x => x.Qn >= 0)
+                .Distinct()
                 .ToList();
 
             return qns;

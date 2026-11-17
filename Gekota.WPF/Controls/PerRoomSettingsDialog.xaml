@@ -111,7 +111,7 @@
                 </GroupBox>
                 <GroupBox Header="录制画质">
                     <StackPanel>
-                        <TextBlock Text="逗号分割的录制画质ID"/>
+                        <TextBlock Text="逗号分割的录制画质ID（如 10000,hevc10000；纯数字按 AVC 解析）"/>
                         <local:SettingWithDefault IsSettingNotUsingDefault="{Binding HasRecordingQuality}">
                             <TextBox Text="{Binding RecordingQuality,UpdateSourceTrigger=PropertyChanged,Delay=1000}"
                                  ui:TextBoxHelper.IsDeleteButtonVisible="False" Width="220" HorizontalAlignment="Left"/>

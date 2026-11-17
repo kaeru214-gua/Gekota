@@ -38,14 +38,20 @@ namespace Gekota.WPF.Pages
         {
             public string DisplayName { get; set; } = string.Empty;
             public int Qn { get; set; }
+
+            /// <summary>写入 RecordingQuality 的值：先要 AVC，没有就退到 HEVC。</summary>
+            public string Value { get; set; } = string.Empty;
+
             public override string ToString() => this.DisplayName;
         }
 
+        // B 站不少直播间「原画」只给 HEVC（AVC 最高只到 400），
+        // 所以每一档都同时接受两种编码，避免录不上。
         private static readonly QualityOption[] QualityOptions = new[]
         {
-            new QualityOption { DisplayName = "720p 超清", Qn = 250 },
-            new QualityOption { DisplayName = "1080p 蓝光", Qn = 400 },
-            new QualityOption { DisplayName = "1080p 原画(高帧率)", Qn = 10000 },
+            new QualityOption { DisplayName = "720p 超清", Qn = 250, Value = "250,hevc250" },
+            new QualityOption { DisplayName = "1080p 蓝光", Qn = 400, Value = "400,hevc400" },
+            new QualityOption { DisplayName = "1080p 原画(高帧率)", Qn = 10000, Value = "10000,hevc10000" },
         };
 
         private readonly GlobalConfig? globalConfig;
@@ -151,14 +157,23 @@ namespace Gekota.WPF.Pages
                     this.QualityComboBox.SelectedIndex = 0;
                     if (this.QualityHintText is not null)
                         this.QualityHintText.Text = "未登录：默认 720p 超清，无法修改。";
-                    if (this.globalConfig is { } cfg) cfg.RecordingQuality = "250";
+                    if (this.globalConfig is { } cfg) cfg.RecordingQuality = QualityOptions[0].Value;
                 }
                 else
                 {
-                    var idx = QualityFromConfig(this.globalConfig?.RecordingQuality);
-                    this.QualityComboBox.SelectedIndex = idx;
+                    var current = this.globalConfig?.RecordingQuality;
+                    var normalized = NormalizeQualityValue(current);
+
+                    // 老配置里只写了纯数字（等同 AVC 限定），这里升级成 AVC+HEVC 双档
+                    if (this.globalConfig is { } cfg && !string.Equals(normalized, current, StringComparison.Ordinal))
+                    {
+                        cfg.RecordingQuality = normalized;
+                        logger.Information("录制画质已升级为 AVC/HEVC 双编码：{Value}", normalized);
+                    }
+
+                    this.QualityComboBox.SelectedIndex = QualityFromConfig(normalized);
                     if (this.QualityHintText is not null)
-                        this.QualityHintText.Text = "已登录：可自由切换录制画质。";
+                        this.QualityHintText.Text = "已登录：可自由切换录制画质（自动兼容 AVC / HEVC）。";
                 }
 
                 this.QualityComboBox.SelectionChanged -= this.QualityComboBox_SelectionChanged;
@@ -177,8 +192,28 @@ namespace Gekota.WPF.Pages
             if (this.globalConfig is not { } cfg) return;
             if (this.QualityComboBox.SelectedItem is not QualityOption opt) return;
 
-            cfg.RecordingQuality = opt.Qn.ToString();
-            logger.Debug("录制画质已设置为 {Qn}", opt.Qn);
+            cfg.RecordingQuality = opt.Value;
+            logger.Debug("录制画质已设置为 {Value}", opt.Value);
+        }
+
+        /// <summary>把只写了纯数字的老配置升级成「AVC + HEVC」双档；已经自己配过编码的不动。</summary>
+        private static string NormalizeQualityValue(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return QualityOptions[0].Value;
+
+            var tokens = value!.Split(new[] { ',', '，', '、', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+            // 已经显式指定了 avcXXX / hevcXXX，或本来就是多档组合 —— 尊重用户设置
+            foreach (var t in tokens)
+            {
+                if (t.StartsWith("avc", StringComparison.OrdinalIgnoreCase) ||
+                    t.StartsWith("hevc", StringComparison.OrdinalIgnoreCase))
+                    return value;
+            }
+            if (tokens.Length > 1) return value;
+
+            var idx = QualityFromConfig(value);
+            return idx >= 0 && idx < QualityOptions.Length ? QualityOptions[idx].Value : QualityOptions[0].Value;
         }
 
         private static int QualityFromConfig(string? value)

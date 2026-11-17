@@ -125,7 +125,7 @@
                     <ComboBox x:Name="QualityComboBox"
                               Width="240" HorizontalAlignment="Left"
                               DisplayMemberPath="DisplayName"
-                              SelectedValuePath="Qn"/>
+                              SelectedValuePath="Value"/>
                     <TextBlock x:Name="QualityHintText" Margin="0,8,0,0"
                                FontSize="12" Foreground="#888888" TextWrapping="Wrap"/>
                 </StackPanel>

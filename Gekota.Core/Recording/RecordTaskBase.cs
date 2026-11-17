@@ -493,7 +493,19 @@ namespace Gekota.Core.Recording
                 }
             }
 
-            this.logger.Information("没有符合设置要求的画质，稍后再试。设置画质 {QnSettings}, 可用画质 {AcceptQn}", allowedQn, allAvailableCodecQn);
+            // 命中不了时给个针对性提示：这个分辨率可能只在另一种编码下可用（B 站原画常常只有 HEVC）
+            var codecHint = string.Empty;
+            foreach (var wanted in allowedQn)
+            {
+                if (allAvailableCodecQn.Any(x => x.Qn == wanted.Qn && x.Codec != wanted.Codec))
+                {
+                    codecHint = "（该画质只有另一种编码，把录制画质改成 \"10000,hevc10000\" 这种同时接受 AVC/HEVC 的写法即可）";
+                    break;
+                }
+            }
+
+            this.logger.Information("没有符合设置要求的画质，稍后再试。设置画质 {QnSettings}, 可用画质 {AcceptQn}{Hint}",
+                allowedQn, allAvailableCodecQn, codecHint);
             throw new NoMatchingQnValueException();
 
         match_qn_success:

@@ -292,7 +292,7 @@ namespace Gekota.WPF.Pages
                 if (config is null) return;
 
                 config.Cookie = session.Cookie;
-                config.RecordingQuality = "10000"; // 1080p 原画(高帧率)
+                config.RecordingQuality = "10000,hevc10000"; // 1080p 原画(高帧率)，AVC/HEVC 都接受
                 recorder?.SaveConfig();
 
                 logger.Information("登录后已自动设置 Cookie 与画质为 1080p 原画(高帧率)");
@@ -312,7 +312,7 @@ namespace Gekota.WPF.Pages
                 if (config is null) return;
 
                 config.Cookie = string.Empty;
-                config.RecordingQuality = "250"; // 退回 720p 超清
+                config.RecordingQuality = "250,hevc250"; // 退回 720p 超清，AVC/HEVC 都接受
                 recorder?.SaveConfig();
 
                 logger.Information("已清除登录 Cookie，画质退回 720p 超清");

@@ -1,0 +1,33 @@
+<ui:ContentDialog
+    x:Class="Gekota.WPF.Controls.UpdateNoticeDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
+    mc:Ignorable="d"
+    Title="更新提示"
+    PrimaryButtonText="知道了"
+    DefaultButton="Primary">
+    <StackPanel MaxWidth="560">
+        <TextBlock x:Name="HeaderText" FontSize="18" FontWeight="Bold"
+                   FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+
+        <TextBlock x:Name="IntroText" Margin="0,10,0,0" FontSize="14"
+                   FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+
+        <ItemsControl x:Name="ItemsControl" Margin="0,2,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Margin="0,6,0,0" FontSize="14" TextWrapping="Wrap" FontFamily="Microsoft YaHei">
+                        <Run Text="• "/><Run Text="{Binding Mode=OneWay}"/>
+                    </TextBlock>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Border BorderThickness="0,1,0,0" BorderBrush="#22000000" Margin="0,14,0,0" Padding="0,12,0,0">
+            <TextBlock x:Name="FooterText" FontSize="13" FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+        </Border>
+    </StackPanel>
+</ui:ContentDialog>

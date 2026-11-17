@@ -55,10 +55,58 @@ namespace Gekota.WPF.Services
         public int MsgBoxFontSize { get; set; } = 38;    // --msgboxfontsize
         public int MsgBoxWidth { get; set; } = 500;      // --msgboxsize WxH
         public int MsgBoxHeight { get; set; } = 1080;
-        public int MsgBoxX { get; set; } = 20;           // --msgboxpos XxY
-        public int MsgBoxY { get; set; } = 0;
+
+        /// <summary>消息框左边距（--msgboxpos 的 X）。</summary>
+        public int MsgBoxX { get; set; } = 20;
+
+        /// <summary>
+        /// 旧版的 Y 坐标。现在特殊弹幕固定贴在画面左下角，Y 由「PlayResY - 框高」自动算出，
+        /// 横竖屏都会跟着换算，此字段只为兼容旧配置保留。
+        /// </summary>
+        public int MsgBoxY { get; set; }
         public double MsgBoxDuration { get; set; } = 0;  // --msgboxduration
         public double GiftMinPrice { get; set; } = 0;    // --giftminprice
+
+        // ---- 特殊弹幕（SC / 礼物 / 上舰）----
+        /// <summary>消息框档位：small（比中 1/3）、medium（默认，当前大小）、large（比中大 1/3）。</summary>
+        public string MsgBoxSize { get; set; } = "medium";
+
+        /// <summary>是否启用特殊弹幕透明度。</summary>
+        public bool MsgBoxTransparentEnabled { get; set; }
+
+        /// <summary>透明度 0-100，越大越透明（0 = 完全不透明）。</summary>
+        public int MsgBoxTransparency { get; set; }
+
+        /// <summary>档位对应的缩放系数。</summary>
+        [JsonIgnore]
+        public double MsgBoxScale
+        {
+            get
+            {
+                switch ((this.MsgBoxSize ?? "medium").Trim().ToLowerInvariant())
+                {
+                    case "small": return 2.0 / 3.0;
+                    case "large": return 4.0 / 3.0;
+                    default: return 1.0;
+                }
+            }
+        }
+
+        /// <summary>给 UI ComboBox 用的档位索引（0=小,1=中,2=大）。</summary>
+        [JsonIgnore]
+        public int MsgBoxSizeIndex
+        {
+            get
+            {
+                switch ((this.MsgBoxSize ?? "medium").Trim().ToLowerInvariant())
+                {
+                    case "small": return 0;
+                    case "large": return 2;
+                    default: return 1;
+                }
+            }
+            set => this.MsgBoxSize = value == 0 ? "small" : value == 2 ? "large" : "medium";
+        }
 
         // ---- 屏蔽模式 ----
         public bool BlockR2L { get; set; }
@@ -156,6 +204,18 @@ namespace Gekota.WPF.Services
         public string BuildCommand(string input, string output, string? probePath = null)
         {
             var (rx, ry) = this.ResolveResolution(probePath ?? input);
+
+            // 特殊弹幕：档位缩放（框宽 / 框高 / 字号一起缩，与普通弹幕字号无关）
+            var scale = this.MsgBoxScale;
+            var mbFont = Math.Max(8, (int)Math.Round((this.MsgBoxFontSize > 0 ? this.MsgBoxFontSize : 38) * scale));
+            var mbW = Math.Max(60, (int)Math.Round((this.MsgBoxWidth > 0 ? this.MsgBoxWidth : 500) * scale));
+            var mbH = (int)Math.Round((this.MsgBoxHeight > 0 ? this.MsgBoxHeight : ry) * scale);
+            if (mbH <= 0 || mbH > ry) mbH = ry;
+
+            // 特殊弹幕锚点固定在画面左下角：横屏 1920×1080 与竖屏 1080×1920 都按各自主坐标系算底边
+            var mbX = Math.Max(0, this.MsgBoxX);
+            var mbY = Math.Max(0, ry - mbH);
+
             var parts = new List<string>
             {
                 "-i", Quote(input),
@@ -179,9 +239,9 @@ namespace Gekota.WPF.Services
                 "--outline-blur", F(OutlineBlur),
                 "--outline-opacity", I(OutlineOpacity),
                 "-D", F(Shadow),
-                "--msgboxfontsize", I(MsgBoxFontSize > 0 ? MsgBoxFontSize : 38),
-                "--msgboxsize", MsgBoxWidth + "x" + MsgBoxHeight,
-                "--msgboxpos", MsgBoxX + "x" + MsgBoxY,
+                "--msgboxfontsize", I(mbFont),
+                "--msgboxsize", mbW + "x" + mbH,
+                "--msgboxpos", mbX + "x" + mbY,
                 "--msgboxduration", F(MsgBoxDuration),
                 "--giftminprice", F(GiftMinPrice),
                 "--saveblocked", B(SaveBlockedPart),

@@ -4,7 +4,7 @@
 import sys
 from pathlib import Path
 
-ROOT = Path(r"C:\Users\91054\Documents\bilibili\Gekota")
+ROOT = Path(__file__).resolve().parent
 CN = ROOT / "README_CN.md"
 EN = ROOT / "README.md"
 

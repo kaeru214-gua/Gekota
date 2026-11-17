@@ -83,8 +83,12 @@ namespace Gekota.WPF.Services
 
                 var v = (o.VideoCodec ?? "").ToUpperInvariant();
                 if (v.Contains("NVENC")) v = "H264(NVENC)";
-                var res = o.AutoResolution ? (i.Width > 0 ? i.Width + "x" + i.Height : "自动")
-                                           : (o.OutputWidth + "x" + o.OutputHeight);
+                var res = (o.ResolutionMode ?? "auto").Trim().ToLowerInvariant() switch
+                {
+                    "manual" => o.OutputWidth + "x" + o.OutputHeight,
+                    "source" => i.Width > 0 ? i.Width + "x" + i.Height : "源分辨率",
+                    _ => i.Height > i.Width ? "1080x1920（竖屏）" : "3840x2160（4K）",
+                };
                 var fps = o.Fps > 0 ? o.Fps + "fps(" + (o.FpsMode == "cfr" ? "CFR" : "VFR") + ")"
                                     : i.Fps.ToString("0.##") + "fps";
                 var br = o.RateMode switch

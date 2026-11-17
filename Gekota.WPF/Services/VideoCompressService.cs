@@ -81,10 +81,15 @@ namespace Gekota.WPF.Services
                     return -1;
                 }
 
+                // 先探测源文件尺寸：auto 模式要按横/竖屏选 4K 或 1080p 竖版
+                var probe = MediaProbe.Probe(input);
+                var srcW = probe?.Width ?? 0;
+                var srcH = probe?.Height ?? 0;
+
                 var psi = new ProcessStartInfo
                 {
                     FileName = FfmpegPath,
-                    Arguments = opts.BuildArguments(input, output, subtitle),
+                    Arguments = opts.BuildArguments(input, output, subtitle, srcW, srcH),
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,

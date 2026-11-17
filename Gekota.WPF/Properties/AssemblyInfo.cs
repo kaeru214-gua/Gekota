@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -13,6 +13,12 @@ using System.Windows;
 [assembly: AssemblyCopyright("Copyright © 2018-2026 Genteure")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
+
+// 版本号（本工程是旧式 csproj，不会自动生成这几个特性）。
+// 发布新版本时需同步修改：Directory.Build.props、Gekota.Flv\GekotaVersion.cs、make_installer.iss。
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyInformationalVersion("1.1.0")]
 
 // Setting ComVisible to false makes the types in this assembly not visible
 // to COM components.  If you need to access a type in this assembly from

@@ -123,6 +123,32 @@
                         </WrapPanel>
                     </Border>
 
+                    <!-- ===== 特殊弹幕 ===== -->
+                    <TextBlock Text="特殊弹幕（SC / 礼物 / 上舰）" FontSize="15" Margin="0,14,0,6"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8">
+                        <WrapPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,14,5">
+                                <TextBlock Text="框大小" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="MsgBoxSizeBox" MinWidth="80" VerticalAlignment="Center"
+                                          SelectedIndex="{Binding MsgBoxSizeIndex, Mode=TwoWay}">
+                                    <ComboBoxItem Content="小"/>
+                                    <ComboBoxItem Content="中"/>
+                                    <ComboBoxItem Content="大"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <CheckBox x:Name="MsgBoxTransparentToggle" Content="透明度" VerticalAlignment="Center"
+                                      Margin="0,0,8,5" IsChecked="{Binding MsgBoxTransparentEnabled, Mode=TwoWay}"/>
+                            <Slider x:Name="MsgBoxTransparencySlider" Width="170" Minimum="0" Maximum="100"
+                                    TickFrequency="5" IsSnapToTickEnabled="True" VerticalAlignment="Center" Margin="0,0,8,5"
+                                    IsEnabled="{Binding IsChecked, ElementName=MsgBoxTransparentToggle}"
+                                    Value="{Binding MsgBoxTransparency, Mode=TwoWay}"/>
+                            <TextBlock VerticalAlignment="Center" Margin="0,0,10,5" MinWidth="34"
+                                       Text="{Binding MsgBoxTransparency, StringFormat={}{0}%}"/>
+                            <TextBlock VerticalAlignment="Center" Margin="0,0,10,5" Foreground="Gray"
+                                       Text="（框固定贴在画面左下角，越大越透明）"/>
+                        </WrapPanel>
+                    </Border>
+
                     <!-- ===== 其他（DF 有、flutter GUI 未暴露）===== -->
                     <TextBlock Text="其他设置" FontSize="15" Margin="0,14,0,6"/>
                     <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Padding="8">

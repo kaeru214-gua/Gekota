@@ -1,4 +1,4 @@
-﻿[Bb]in/
+[Bb]in/
 [Oo]bj/
 .vs/
 *.user
@@ -20,3 +20,9 @@ Thumbs.db
 desktop.ini
 .DS_Store
 publish.ps1
+path.json
+path.backup.json
+AnnouncementState.json
+*.WebView2/
+
+dist/

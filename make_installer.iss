@@ -3,10 +3,12 @@
 ;  发布新版本时：改 MyAppVersion，并同步改
 ;    Gekota.Flv\GekotaVersion.cs
 ;    Directory.Build.props
+;    Gekota.WPF\Properties\AssemblyInfo.cs
+;    Gekota.WPF\Services\AnnouncementContent.cs（公告页和启动弹窗的文案/版本）
 ; ============================================================
 
 #define MyAppName "Gekota"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Gekota Contributors"
 #define MyAppExeName "Gekota.WPF.exe"
 
@@ -44,7 +46,8 @@ Name: "chinesesimp"; MessagesFile: "ChineseSimplified.isl"
 Name: "desktopicon"; Description: "创建桌面快捷方式(&D)"; GroupDescription: "附加任务："
 
 [Files]
-Source: "Gekota.WPF\bin\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; 排除：WebView2 浏览器缓存（含 B 站登录态）、日志、pdb、本机的个人配置与背景图
+Source: "Gekota.WPF\bin\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.WebView2\*,logs\*,*.pdb,*.log,Thumbs.db,desktop.ini,path.json,path.backup.json,AppearanceSettings.json,BiliUploadSettings.json,DanmakuConvertSettings.json,VideoCompressSettings.json,AnnouncementState.json,user_session.json,default_background.jpg"
 
 [Icons]
 Name: "{autoprograms}\Gekota"; Filename: "{app}\{#MyAppExeName}"

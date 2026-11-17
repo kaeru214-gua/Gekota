@@ -14,9 +14,11 @@ namespace Gekota.WPF.Services
         /// <summary>默认主题色（贝拉Kira）。</summary>
         public const string DefaultThemeColorHex = "#DB7D74";
 
-        /// <summary>默认背景图的原始位置（首次启动时复制到程序目录）。</summary>
-        public const string DefaultBackgroundSourcePath =
-            @"C:\Users\91054\Pictures\A-SOUL\[SHANA]【A-SOUL贝拉】2026年09月30日【3D】超级大负翁！-00.58.23.272.jpg";
+        /// <summary>
+        /// 默认背景图的原始位置（首次启动时复制到程序目录）。
+        /// 留空 = 不自动复制；需要默认背景时，把图片命名为 default_background.jpg 放到程序目录即可。
+        /// </summary>
+        public const string DefaultBackgroundSourcePath = "";
 
         public string ThemeColorHex { get; set; } = DefaultThemeColorHex;
         public string BackgroundImagePath { get; set; } = string.Empty;
@@ -70,7 +72,8 @@ namespace Gekota.WPF.Services
                     return DefaultBackgroundPath;
                 }
 
-                logger.Warning("[外观] 默认背景图源文件不存在: {Src}", src);
+                if (!string.IsNullOrWhiteSpace(src))
+                    logger.Warning("[外观] 默认背景图源文件不存在: {Src}", src);
             }
             catch (Exception ex) { logger.Warning(ex, "[外观] 复制默认背景图失败"); }
             return string.Empty;

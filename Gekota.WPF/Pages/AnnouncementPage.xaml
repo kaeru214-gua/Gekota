@@ -13,8 +13,45 @@
 
             <!-- 开头 -->
             <TextBlock Text="欢迎使用 Gekota" FontSize="30" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+
+            <Border Background="#140078D4" BorderBrush="#330078D4" BorderThickness="1"
+                    CornerRadius="10" Padding="9,3" HorizontalAlignment="Left" Margin="0,8,0,0">
+                <TextBlock x:Name="VersionText" Text="v1.1.0" FontSize="12" FontWeight="Bold"
+                           FontFamily="Microsoft YaHei" Foreground="#FF0B5FA5"/>
+            </Border>
+
             <TextBlock Margin="0,10,0,0" FontSize="16" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
                        Text="这是一个可以让你解放双手（解放手，解放手手）的一站式录播软件。"/>
+
+            <!-- ===== 版本更新 ===== -->
+            <TextBlock Text="版本更新" FontSize="22" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                       Margin="0,30,0,4"/>
+
+            <Border Background="#0D0078D4" BorderBrush="#330078D4" BorderThickness="1"
+                    CornerRadius="10" Padding="18,16" Margin="0,10,0,0">
+                <StackPanel>
+                    <TextBlock x:Name="UpdateHeaderText" FontSize="17" FontWeight="Bold"
+                               FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+
+                    <TextBlock x:Name="UpdateIntroText" Margin="0,10,0,0" FontSize="14"
+                               FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+
+                    <ItemsControl x:Name="UpdateItemsControl" Margin="0,2,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap" FontFamily="Microsoft YaHei">
+                                    <Run Text="• "/><Run Text="{Binding Mode=OneWay}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border BorderThickness="0,1,0,0" BorderBrush="#22000000" Margin="0,14,0,0" Padding="0,12,0,0">
+                        <TextBlock x:Name="UpdateFooterText" FontSize="13" FontFamily="Microsoft YaHei"
+                                   TextWrapping="Wrap" Foreground="#FF000000"/>
+                    </Border>
+                </StackPanel>
+            </Border>
 
             <TextBlock Text="使用流程" FontSize="22" FontWeight="Bold" FontFamily="Microsoft YaHei"
                        Margin="0,32,0,4"/>

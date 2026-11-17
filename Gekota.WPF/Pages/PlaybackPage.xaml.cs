@@ -465,9 +465,18 @@ namespace Gekota.WPF.Pages
             try
             {
                 var file = this.ResolveScreenshotPath();
-
-                // ① 优先：从直播流抓纯净帧（无播放器水印，需正在录制）
                 var room = this._selectedRoom;
+
+                // ① 优先：录制文件末尾的帧。录制文件是实时增长的，末尾帧 ≈ 屏幕上正在显示的画面，
+                //    既没有「重新连流」带来的时间偏移，也不含播放器水印。
+                var rec = room?.CurrentRecordFilePath;
+                if (!string.IsNullOrWhiteSpace(rec) && await this.GrabRecordingTailFrameAsync(rec!, file))
+                {
+                    logger.Information("[实时播放] 截图已保存（录制尾帧）{File}", file);
+                    return;
+                }
+
+                // ② 回退：从直播流抓纯净帧（无播放器水印，需正在录制）
                 if (room != null)
                 {
                     string? url = null;
@@ -481,12 +490,72 @@ namespace Gekota.WPF.Pages
                     }
                 }
 
-                // ② 回退：WebView2 截图（可能含播放器水印）
+                // ③ 回退：WebView2 截图（可能含播放器水印）
                 await this.CaptureWebViewFrameAsync(file);
             }
             catch (Exception ex)
             {
                 logger.Warning(ex, "[实时播放] 拍照失败");
+            }
+        }
+
+        /// <summary>
+        /// 从正在写入的录制文件里取最后一帧。
+        /// -sseof 从文件末尾回退 1.2 秒，再用 -update 1 把每一帧覆盖写入同一个 png，最终留下的就是最后一帧。
+        /// 相比重新连接直播流抓帧，这样拿到的就是按下按钮那一刻正在播的画面。
+        /// </summary>
+        private async Task<bool> GrabRecordingTailFrameAsync(string recordPath, string file)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(recordPath) || !File.Exists(recordPath)) return false;
+
+                var ff = Gekota.WPF.Services.VideoCompressService.FfmpegPath;
+                if (!File.Exists(ff)) return false;
+
+                var dir = IOPath.GetDirectoryName(file);
+                if (!string.IsNullOrWhiteSpace(dir)) Directory.CreateDirectory(dir);
+
+                var args = "-y -hide_banner -loglevel error -nostats "
+                         + "-sseof -1.2 "
+                         + "-i \"" + recordPath + "\" "
+                         + "-an -update 1 -f image2 \"" + file + "\"";
+
+                var ok = await Task.Run(() =>
+                {
+                    try
+                    {
+                        var psi = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = ff,
+                            Arguments = args,
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                            RedirectStandardError = true,
+                        };
+                        using var p = System.Diagnostics.Process.Start(psi);
+                        if (p == null) return false;
+                        p.StandardError.ReadToEnd();
+                        if (!p.WaitForExit(15000))
+                        {
+                            try { p.Kill(); } catch { }
+                        }
+                        return File.Exists(file) && new FileInfo(file).Length > 0;
+                    }
+                    catch { return false; }
+                });
+
+                if (!ok)
+                {
+                    try { if (File.Exists(file)) File.Delete(file); } catch { }
+                }
+
+                return ok;
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "[实时播放] 录制尾帧截取失败");
+                return false;
             }
         }
 

@@ -23,11 +23,64 @@ namespace Gekota.WPF.Services
             try
             {
                 var cmd = DanmakuConvertSettings.Current.BuildCommand(input, assPath, xmlPath);
-                return DanmakuFactoryInterop.RunCommand(cmd);
+                var code = DanmakuFactoryInterop.RunCommand(cmd);
+                if (code == 0) ApplyMsgBoxTransparency(assPath);
+                return code;
             }
             finally
             {
                 Cleanup(input, xmlPath);
+            }
+        }
+
+        /// <summary>
+        /// 给特殊弹幕（DanmakuFactory 的 MSG 样式：SC / 礼物 / 上舰）加透明度。
+        /// DF 没有消息框透明度参数，所以在生成的 ASS 里给每条 MSG 事件注入 \alpha。
+        /// </summary>
+        public static void ApplyMsgBoxTransparency(string assPath)
+        {
+            try
+            {
+                var options = DanmakuConvertSettings.Current;
+                if (!options.MsgBoxTransparentEnabled) return;
+
+                var percent = options.MsgBoxTransparency;
+                if (percent < 0) percent = 0;
+                if (percent > 100) percent = 100;
+                if (percent == 0) return;
+
+                var alpha = (int)Math.Round(percent / 100.0 * 255);
+                if (alpha <= 0) return;
+                if (!File.Exists(assPath)) return;
+
+                var tag = "{\\alpha&H" + alpha.ToString("X2") + "&}";
+                var lines = File.ReadAllLines(assPath, Encoding.UTF8);
+                var changed = false;
+
+                for (var i = 0; i < lines.Length; i++)
+                {
+                    var line = lines[i];
+                    if (!line.StartsWith("Dialogue:", StringComparison.Ordinal)) continue;
+
+                    // 字段：Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+                    var fields = line.Split(new[] { ',' }, 10);
+                    if (fields.Length < 10) continue;
+                    if (!string.Equals(fields[3].Trim(), "MSG", StringComparison.Ordinal)) continue;
+
+                    fields[9] = tag + fields[9];
+                    lines[i] = string.Join(",", fields);
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    File.WriteAllLines(assPath, lines, new UTF8Encoding(false));
+                    logger.Debug("[弹幕转换] 特殊弹幕透明度 {Percent}% -> alpha {Alpha}", percent, alpha);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[弹幕转换] 特殊弹幕透明度处理失败 {Ass}", assPath);
             }
         }
 

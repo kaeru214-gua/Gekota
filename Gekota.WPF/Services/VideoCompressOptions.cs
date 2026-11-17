@@ -9,7 +9,7 @@ using Serilog;
 #nullable enable
 namespace Gekota.WPF.Services
 {
-    /// <summary>视频压制参数（完整对齐 ShanaEncoder 6.0 快速设置；分辨率自动匹配源文件）。</summary>
+    /// <summary>视频压制参数（完整对齐 ShanaEncoder 6.0 快速设置；默认按横/竖屏自动选 4K 或 1080p 竖版）。</summary>
     public sealed class VideoCompressOptions
     {
         // ===== 容器 =====
@@ -35,11 +35,48 @@ namespace Gekota.WPF.Services
         public int KeyframeInterval { get; set; } = 10;          // 关键帧（秒）
 
         // ===== 画面 =====
-        public bool AutoResolution { get; set; } = true;         // true = 自动匹配源文件
+        /// <summary>
+        /// 输出分辨率模式：
+        /// auto = 按源文件方向自动（横屏 3840×2160，竖屏 1080×1920）；
+        /// manual = 使用 OutputWidth/OutputHeight；source = 保持源文件分辨率。
+        /// </summary>
+        public string ResolutionMode { get; set; } = "auto";
         public int OutputWidth { get; set; } = 1920;
         public int OutputHeight { get; set; } = 1080;
         public string ScaleFilter { get; set; } = "bicubic";
         public bool HdrToSdr { get; set; } = true;
+
+        /// <summary>自动模式的横屏规格（4K）。</summary>
+        public const int LandscapeWidth = 3840;
+        public const int LandscapeHeight = 2160;
+
+        /// <summary>自动模式的竖屏规格（1080p 竖版）。</summary>
+        public const int PortraitWidth = 1080;
+        public const int PortraitHeight = 1920;
+
+        /// <summary>按当前模式 + 源尺寸算出输出尺寸；返回 null 表示沿用源尺寸。</summary>
+        public (int W, int H)? ResolveOutputSize(int sourceWidth, int sourceHeight)
+        {
+            switch ((this.ResolutionMode ?? "auto").Trim().ToLowerInvariant())
+            {
+                case "source":
+                    return null;
+                case "manual":
+                    return (Even(this.OutputWidth, 1920), Even(this.OutputHeight, 1080));
+                default:
+                    // 探测不到源尺寸时保持源分辨率，避免把竖屏误判成横屏拉成 4K
+                    if (sourceWidth <= 0 || sourceHeight <= 0) return null;
+                    return sourceHeight > sourceWidth
+                        ? (PortraitWidth, PortraitHeight)   // 竖屏
+                        : (LandscapeWidth, LandscapeHeight); // 横屏
+            }
+        }
+
+        private static int Even(int v, int fallback)
+        {
+            if (v <= 1) v = fallback;
+            return v % 2 == 0 ? v : v + 1;
+        }
 
         // ===== 音频 =====
         public string AudioCodec { get; set; } = "libfdk_aac";
@@ -55,15 +92,24 @@ namespace Gekota.WPF.Services
         private static string Num(int v) => v.ToString(CultureInfo.InvariantCulture);
         private static string Esc(string s) => s.Replace('\\', '/').Replace(":", "\\:").Replace("'", "\\'");
 
-        private List<string> BuildTokens(string input, string output, string? subtitlePath)
+        private List<string> BuildTokens(string input, string output, string? subtitlePath,
+            int sourceWidth, int sourceHeight)
         {
             var vf = new List<string>();
 
-            // 分辨率：自动匹配源文件（宽高规整为偶数，H.264 要求）
-            if (AutoResolution)
-                vf.Add("scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=" + ScaleFilter);
+            // 分辨率：auto = 按横/竖屏选规格；manual = 固定尺寸；source = 保持源尺寸
+            // 宽高规整为偶数（H.264 要求）
+            if (this.ResolveOutputSize(sourceWidth, sourceHeight) is { } size)
+            {
+                // 等比缩放后补边到目标尺寸：16:9 / 9:16 源正好铺满，其它比例不会被拉变形
+                vf.Add("scale=" + Num(size.W) + ":" + Num(size.H) + ":flags=" + ScaleFilter
+                       + ":force_original_aspect_ratio=decrease");
+                vf.Add("pad=" + Num(size.W) + ":" + Num(size.H) + ":(ow-iw)/2:(oh-ih)/2:color=black");
+            }
             else
-                vf.Add("scale=" + Num(OutputWidth) + ":" + Num(OutputHeight) + ":flags=" + ScaleFilter);
+            {
+                vf.Add("scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=" + ScaleFilter);
+            }
 
             // 注：标准 FFmpeg 无 shanatonemap 滤镜；B 站源为 SDR，无需色调映射
 
@@ -140,9 +186,10 @@ namespace Gekota.WPF.Services
             return a;
         }
 
-        public string BuildArguments(string input, string output, string? subtitlePath)
+        public string BuildArguments(string input, string output, string? subtitlePath,
+            int sourceWidth = 0, int sourceHeight = 0)
         {
-            var tokens = BuildTokens(input, output, subtitlePath);
+            var tokens = BuildTokens(input, output, subtitlePath, sourceWidth, sourceHeight);
             var sb = new StringBuilder();
             foreach (var t in tokens)
             {

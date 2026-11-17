@@ -280,9 +280,16 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                         _ = this.Dispatcher.BeginInvoke(DispatcherPriority.Normal, method: new Action(() =>
                         {
                             if (firstUse)
+                            {
                                 this.AnnouncementPageNavigationViewItem.IsSelected = true;
+                                // 首次使用直接展示了公告页，不再额外弹窗
+                                AnnouncementState.MarkCurrentVersionShown();
+                            }
                             else
+                            {
                                 this.RoomListPageNavigationViewItem.IsSelected = true;
+                                _ = this.ShowUpdateNoticeOnceAsync();
+                            }
 
                             if (CommandArgumentHide)
                                 Application.Current.MainWindow.WindowState = WindowState.Minimized;
@@ -298,6 +305,31 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     logger.Warning(ex, "选择工作目录时发生了未知错误");
                     continue;
                 }
+            }
+        }
+
+        /// <summary>新版本第一次启动时弹一次更新提示（每个版本只弹一次，记录在 AnnouncementState.json）。</summary>
+        private async Task ShowUpdateNoticeOnceAsync()
+        {
+            try
+            {
+                if (!AnnouncementState.ShouldShowCurrentVersion()) return;
+
+                await Task.Delay(300);
+
+                var dialog = new UpdateNoticeDialog
+                {
+                    Owner = Application.Current.MainWindow,
+                };
+                await dialog.ShowAndDisableMinimizeToTrayAsync();
+
+                // 弹完才记；中途关掉程序不会误记为已弹
+                AnnouncementState.MarkCurrentVersionShown();
+                logger.Information("[公告] 已展示 {Version} 更新提示", AnnouncementContent.Version);
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "[公告] 弹出更新提示失败");
             }
         }
 

@@ -502,4 +502,15 @@
       <DependentUpon>QuickSettingsDialog.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
+  <ItemGroup>
+    <Page Include="Controls\UpdateNoticeDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Compile Include="Controls\UpdateNoticeDialog.xaml.cs">
+      <DependentUpon>UpdateNoticeDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Services\AnnouncementContent.cs" />
+    <Compile Include="Services\AnnouncementState.cs" />
+  </ItemGroup>
 </Project>

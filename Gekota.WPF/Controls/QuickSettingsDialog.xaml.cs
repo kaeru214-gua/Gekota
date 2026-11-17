@@ -45,7 +45,8 @@ namespace Gekota.WPF.Controls
             this.CfrBox.IsChecked = string.Equals(o.FpsMode, "cfr", StringComparison.OrdinalIgnoreCase);
             this.KeyframeIntervalBox.Text = o.KeyframeInterval.ToString(CultureInfo.InvariantCulture);
 
-            this.AutoResolutionBox.IsChecked = o.AutoResolution;
+            this.SelectCombo(this.ResolutionModeBox,
+                string.IsNullOrWhiteSpace(o.ResolutionMode) ? "auto" : o.ResolutionMode);
             this.OutputWidthBox.Text = o.OutputWidth.ToString(CultureInfo.InvariantCulture);
             this.OutputHeightBox.Text = o.OutputHeight.ToString(CultureInfo.InvariantCulture);
             this.SelectCombo(this.ScaleFilterBox, o.ScaleFilter);
@@ -83,7 +84,7 @@ namespace Gekota.WPF.Controls
             o.FpsMode = this.CfrBox.IsChecked == true ? "cfr" : "vfr";
             o.KeyframeInterval = this.ParseInt(this.KeyframeIntervalBox.Text, 10);
 
-            o.AutoResolution = this.AutoResolutionBox.IsChecked == true;
+            o.ResolutionMode = this.ComboTag(this.ResolutionModeBox) ?? "auto";
             o.OutputWidth = this.ParseInt(this.OutputWidthBox.Text, 1920);
             o.OutputHeight = this.ParseInt(this.OutputHeightBox.Text, 1080);
             o.ScaleFilter = this.ComboTag(this.ScaleFilterBox) ?? "bicubic";
@@ -117,9 +118,11 @@ namespace Gekota.WPF.Controls
 
         private void UpdateEnabledState()
         {
-            var auto = this.AutoResolutionBox.IsChecked == true;
-            this.OutputWidthBox.IsEnabled = !auto;
-            this.OutputHeightBox.IsEnabled = !auto;
+            // 只有「固定尺寸」时才允许手填宽高
+            var manual = string.Equals(this.ComboTag(this.ResolutionModeBox), "manual",
+                StringComparison.OrdinalIgnoreCase);
+            this.OutputWidthBox.IsEnabled = manual;
+            this.OutputHeightBox.IsEnabled = manual;
 
             var quality = this.RateQualityRadio.IsChecked == true;
             var quant = this.RateQuantRadio.IsChecked == true;
@@ -135,7 +138,7 @@ namespace Gekota.WPF.Controls
             this.UpdateEnabledState();
         }
 
-        private void AutoResolution_Changed(object sender, RoutedEventArgs e)
+        private void ResolutionMode_Changed(object sender, RoutedEventArgs e)
         {
             if (this.loading) return;
             this.UpdateEnabledState();

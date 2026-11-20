@@ -16,7 +16,7 @@
 
             <Border Background="#140078D4" BorderBrush="#330078D4" BorderThickness="1"
                     CornerRadius="10" Padding="9,3" HorizontalAlignment="Left" Margin="0,8,0,0">
-                <TextBlock x:Name="VersionText" Text="v1.1.0" FontSize="12" FontWeight="Bold"
+                <TextBlock x:Name="VersionText" Text="v1.1.1" FontSize="12" FontWeight="Bold"
                            FontFamily="Microsoft YaHei" Foreground="#FF0B5FA5"/>
             </Border>
 

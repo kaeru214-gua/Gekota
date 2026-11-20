@@ -52,6 +52,9 @@ namespace Gekota.WPF.Pages
             new QualityOption { DisplayName = "720p 超清", Qn = 250, Value = "250,hevc250" },
             new QualityOption { DisplayName = "1080p 蓝光", Qn = 400, Value = "400,hevc400" },
             new QualityOption { DisplayName = "1080p 原画(高帧率)", Qn = 10000, Value = "10000,hevc10000" },
+            new QualityOption { DisplayName = "2K", Qn = 15000, Value = "15000,hevc15000" },
+            new QualityOption { DisplayName = "4K", Qn = 20000, Value = "20000,hevc20000" },
+            new QualityOption { DisplayName = "杜比", Qn = 30000, Value = "30000,hevc30000" },
         };
 
         private readonly GlobalConfig? globalConfig;
@@ -223,7 +226,7 @@ namespace Gekota.WPF.Pages
             first = System.Text.RegularExpressions.Regex.Replace(first, @"^(avc|hevc)", "",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             if (!int.TryParse(first, out var qn)) return 0;
-            return qn switch { 400 => 1, 10000 => 2, _ => 0 };
+            return qn switch { 400 => 1, 10000 => 2, 15000 => 3, 20000 => 4, 30000 => 5, _ => 0 };
         }
 
         // ==================== 文件名模板 默认 / 自定义 ====================

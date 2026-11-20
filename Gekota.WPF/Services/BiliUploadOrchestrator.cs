@@ -53,9 +53,11 @@ namespace Gekota.WPF.Services
             var cleanExists = cleanPath != null;
             var danmakuExists = danmakuPath != null;
 
-            if (!cleanExists && !danmakuExists && fangzhuangPath == null)
+            if (!cleanExists && !danmakuExists)
             {
-                // 兜底：没有压制产物时，直接上传转封装后的原始文件
+                // 兜底：没有压制产物时，直接上传转封装后的原始文件。
+                // 注意：防撞.mp4 只是附加的防撞分 P，不能单独当正片上传，
+                // 所以这里不再看 fangzhuangPath，只有真正的录制文件（原始/压制产物）才允许投稿。
                 var rawPath = FindVariant(dir, baseName, string.Empty);
                 if (rawPath != null)
                 {
@@ -65,14 +67,16 @@ namespace Gekota.WPF.Services
                 }
                 else
                 {
-                    throw new Exception("没有可上传的文件（纯净版/弹幕版/防撞/原始文件都不存在）");
+                    throw new Exception("没有可上传的文件（纯净版/弹幕版/原始文件都不存在；防撞.mp4 只是附加分 P，不能单独上传）");
                 }
             }
 
             // 任一文件超 16GB → 整单跳过（不传任何分 P）
             CheckAllWithinLimit(cleanPath, danmakuPath, fangzhuangPath);
 
-            var autoTitle = "【" + info.StreamerName + "】" + info.Date.ToString("yyyy年MM月dd日") + " " + info.LiveTitle;
+            var namePart = (info.StreamerName ?? string.Empty).Trim();
+            var titlePart = (info.LiveTitle ?? string.Empty).Trim();
+            var autoTitle = "【" + namePart + "】" + info.Date.ToString("yyyy年MM月dd日") + titlePart;
             var title = string.IsNullOrWhiteSpace(overrides?.Title) ? autoTitle : overrides!.Title!;
             var desc = overrides?.Desc ?? ReadDescriptionTxt(streamerFolder);
             var rawTags = string.IsNullOrWhiteSpace(overrides?.Tags) ? StreamerTagPresetStore.Get(streamerFolder) : overrides!.Tags!;

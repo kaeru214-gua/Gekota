@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CliWrap;
+using CliWrap.Buffered;
 using Gekota.Core;
 using Gekota.Core.Config;
 using Gekota.DependencyInjection;
@@ -489,10 +490,19 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             if (string.IsNullOrWhiteSpace(flvPath)) return;
             if (!flvPath!.EndsWith(".flv", StringComparison.OrdinalIgnoreCase)) return;
 
-            _ = Task.Run(() => this.RemuxToMp4Async(flvPath));
+            var room = e?.Room;
+            var openTime = e?.Event?.FileOpenTime ?? DateTimeOffset.Now;
+            // 用录制结束时的标题作为兜底；上传时房间可能已经换了新标题，
+            // 直接用 room.Title 会和录播文件名对不上。
+            var liveTitle = e?.Event?.Title ?? room?.Title ?? string.Empty;
 
-            // 录播结束：先弹幕转换，再自动压制（纯净版 -> 弹幕版）
-            _ = Task.Run(() => this.CompressAfterRecordingAsync(flvPath, e?.Room, e?.Event?.FileOpenTime ?? DateTimeOffset.Now));
+            // 录播结束流水线（严格串行）：转封装 → 弹幕 → 压制 → 自动上传。
+            // 压制不能再与转封装并行，否则会抢先占用源文件导致转封装失败。
+            _ = Task.Run(async () =>
+            {
+                await this.RemuxToMp4Async(flvPath).ConfigureAwait(false);
+                this.CompressAfterRecordingAsync(flvPath, room, openTime, liveTitle);
+            });
         }
 
         private void ConvertDanmakuAsync(string flvPath)
@@ -519,7 +529,7 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             }
         }
 
-        private void CompressAfterRecordingAsync(string flvPath, IRoom? room, DateTimeOffset openTime)
+        private void CompressAfterRecordingAsync(string flvPath, IRoom? room, DateTimeOffset openTime, string liveTitle)
         {
             try
             {
@@ -529,19 +539,26 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 var options = VideoCompressSettings.Current;
                 var assPath = Path.ChangeExtension(flvPath, "ass");
 
-                // 2) 自动压制（纯净版 + 弹幕版），统一走 CompressSession
+                // 2) 自动压制（纯净版 + 弹幕版），统一走 CompressSession。
+                // 压制用的 ffmpeg 不支持 FLV 里的 HEVC，但转封装后的 mp4 是标准 HEVC，
+                // 所以优先压转封装出来的 mp4，没有 mp4 时再退回压源 flv。
                 if (options.AutoCompressEnabled)
                 {
+                    var compressInput = flvPath;
+                    var mp4Path = Path.ChangeExtension(flvPath, ".mp4");
+                    if (File.Exists(mp4Path))
+                        compressInput = mp4Path;
+
                     var session = CompressSession.Instance;
-                    session.AddForAutoCompress(flvPath, null);                 // 纯净版
+                    session.AddForAutoCompress(compressInput, null);                 // 纯净版
                     if (File.Exists(assPath))
-                        session.AddForAutoCompress(flvPath, assPath);         // 弹幕版
+                        session.AddForAutoCompress(compressInput, assPath);         // 弹幕版
                     session.Start(options);
                 }
 
                 // 3) 压制完成后自动上传（串行队列，逐个执行）
                 if (BiliUploadSettings.AutoUploadEnabled && room != null)
-                    BiliUploadQueue.Instance.Enqueue(() => this.AutoUploadAfterRecordingAsync(flvPath, room, openTime));
+                    BiliUploadQueue.Instance.Enqueue(() => this.AutoUploadAfterRecordingAsync(flvPath, room, openTime, liveTitle));
             }
             catch (Exception ex)
             {
@@ -549,7 +566,7 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             }
         }
 
-        private async Task AutoUploadAfterRecordingAsync(string flvPath, IRoom room, DateTimeOffset openTime)
+        private async Task AutoUploadAfterRecordingAsync(string flvPath, IRoom room, DateTimeOffset openTime, string eventTitle)
         {
             var ui = BiliUploadSession.Instance;
             try
@@ -566,12 +583,18 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     return;
                 }
 
+                // 标题优先用「录播所在标题文件夹」的名字（和手动上传、文件名一致）；
+                // 取不到再用录制结束时记录的标题，避免用到房间当前的最新标题。
+                var titleFolder = Path.GetDirectoryName(flvPath) ?? string.Empty;
+                var folderTitle = Path.GetFileName(titleFolder);
+                var uploadTitle = !string.IsNullOrWhiteSpace(folderTitle) ? folderTitle : eventTitle;
+
                 var info = new RecordingInfo
                 {
                     FlvPath = flvPath,
                     RoomId = room.RoomConfig.RoomId,
                     StreamerName = room.Name,
-                    LiveTitle = room.Title,
+                    LiveTitle = (uploadTitle ?? string.Empty).Trim(),
                     Date = openTime,
                 };
 
@@ -636,19 +659,35 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     return;
                 }
 
-                logger.Information("开始转封装 {Flv} -> {Mp4}", flvPath, mp4Path);
+                // 录制刚结束时源文件可能仍被占用（写入缓冲 / 杀毒扫描 / 其他读取方），
+                // 失败后短退避重试几次，避免一次偶发占用就直接放弃转封装。
+                const int MaxAttempts = 3;
+                for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+                {
+                    logger.Information("开始转封装 {Flv} -> {Mp4}（第 {Attempt}/{Max} 次）", flvPath, mp4Path, attempt, MaxAttempts);
 
-                var result = await Cli.Wrap(ffmpegPath)
-                    .WithValidation(CommandResultValidation.None)
-                    .WithWorkingDirectory(ffmpegDir)
-                    .WithArguments(new[] { "-hide_banner", "-loglevel", "error", "-y", "-i", flvPath, "-c", "copy", mp4Path })
-                    .ExecuteAsync()
-                    .ConfigureAwait(false);
+                    var result = await Cli.Wrap(ffmpegPath)
+                        .WithValidation(CommandResultValidation.None)
+                        .WithWorkingDirectory(ffmpegDir)
+                        .WithArguments(new[] { "-hide_banner", "-loglevel", "error", "-y", "-i", flvPath, "-c", "copy", mp4Path })
+                        .ExecuteBufferedAsync()
+                        .ConfigureAwait(false);
 
-                if (result.ExitCode == 0)
-                    logger.Information("转封装完成：{Mp4}", mp4Path);
-                else
-                    logger.Warning("转封装失败，退出码 {Code}，文件 {Flv}", result.ExitCode, flvPath);
+                    if (result.ExitCode == 0)
+                    {
+                        logger.Information("转封装完成：{Mp4}", mp4Path);
+                        return;
+                    }
+
+                    var stderr = (result.StandardError ?? string.Empty).Trim();
+                    logger.Warning("转封装失败，退出码 {Code}，文件 {Flv}。stderr: {Stderr}",
+                        result.ExitCode, flvPath, string.IsNullOrEmpty(stderr) ? "(空)" : stderr);
+
+                    // 失败可能留下半成品，清掉后延时重试
+                    try { if (File.Exists(mp4Path)) File.Delete(mp4Path); } catch { }
+                    if (attempt < MaxAttempts)
+                        await Task.Delay(TimeSpan.FromSeconds(attempt)).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {

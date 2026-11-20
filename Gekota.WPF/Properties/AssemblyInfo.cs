@@ -16,9 +16,9 @@ using System.Windows;
 
 // 版本号（本工程是旧式 csproj，不会自动生成这几个特性）。
 // 发布新版本时需同步修改：Directory.Build.props、Gekota.Flv\GekotaVersion.cs、make_installer.iss。
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
-[assembly: AssemblyInformationalVersion("1.1.0")]
+[assembly: AssemblyVersion("1.1.1.0")]
+[assembly: AssemblyFileVersion("1.1.1.0")]
+[assembly: AssemblyInformationalVersion("1.1.1")]
 
 // Setting ComVisible to false makes the types in this assembly not visible
 // to COM components.  If you need to access a type in this assembly from

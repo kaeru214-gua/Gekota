@@ -480,19 +480,25 @@ namespace Gekota.Core.Recording
                 }
             }
 
-            // 命中不了时给个针对性提示：这个分辨率可能只在另一种编码下可用（B 站原画常常只有 HEVC）
-            var codecHint = string.Empty;
-            foreach (var wanted in allowedQn)
+            // 命中不了时：只要还有可用画质，就自动降级到可用的最高档，
+            // 避免选了 4K/杜比而房间只提供 10000/400/250 时一直失败。
+            if (allAvailableCodecQn.Count > 0)
             {
-                if (allAvailableCodecQn.Any(x => x.Qn == wanted.Qn && x.Codec != wanted.Codec))
-                {
-                    codecHint = "（该画质只有另一种编码，把录制画质改成 \"10000,hevc10000\" 这种同时接受 AVC/HEVC 的写法即可）";
-                    break;
-                }
+                selectedCodecQn = allAvailableCodecQn
+                    .GroupBy(x => x.Qn)
+                    .OrderByDescending(g => g.Key)
+                    .First()
+                    .OrderBy(x => x.Codec)
+                    .First();
+
+                this.logger.Warning("设置画质 {QnSettings} 不可用，自动降级到可用最高画质 {SelectedQn}",
+                    allowedQn, selectedCodecQn);
+                goto match_qn_success;
             }
 
-            this.logger.Information("没有符合设置要求的画质，稍后再试。设置画质 {QnSettings}, 可用画质 {AcceptQn}{Hint}",
-                allowedQn, allAvailableCodecQn, codecHint);
+            // 完全没有任何可用画质：通常是没开播 / 只提供 HLS，稍后重试。
+            this.logger.Information("没有符合设置要求的画质，稍后再试。设置画质 {QnSettings}, 可用画质 {AcceptQn}",
+                allowedQn, allAvailableCodecQn);
             throw new NoMatchingQnValueException();
 
         match_qn_success:

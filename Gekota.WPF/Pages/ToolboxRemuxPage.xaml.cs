@@ -98,11 +98,10 @@ namespace Gekota.WPF.Pages
                 .WithValidation(CommandResultValidation.None)
                 .WithWorkingDirectory(FFmpegWorkingDirectory)
                 .WithArguments(new[] { "-hide_banner", "-loglevel", "error", "-y", "-i", source, "-c", "copy", target })
-#if DEBUG
                 .ExecuteBufferedAsync();
-#else
-                .ExecuteAsync();
-#endif
+
+            if (result.ExitCode != 0)
+                logger.Warning("转封装失败，退出码 {Code}。stderr: {Stderr}", result.ExitCode, (result.StandardError ?? string.Empty).Trim());
 
             logger.Debug("Remux completed {@Result}", result);
         }

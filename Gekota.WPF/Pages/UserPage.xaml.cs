@@ -460,7 +460,7 @@ namespace Gekota.WPF.Pages
                 }
                 var liveTitle = titleFolder == null ? string.Empty : Path.GetFileName(titleFolder);
                 var date = File.GetLastWriteTime(path).ToString("yyyy年MM月dd日");
-                this.TitleBox.Text = "【" + streamerName + "】" + date + " " + liveTitle;
+                this.TitleBox.Text = "【" + streamerName.Trim() + "】" + date + liveTitle.Trim();
 
                 var tags = streamerFolder == null ? null : StreamerTagPresetStore.Get(streamerFolder);
                 if (!string.IsNullOrEmpty(tags)) this.TagsBox.Text = tags;

@@ -69,6 +69,7 @@ namespace Gekota.WPF.Pages
         private bool suppressFileNameCheckBoxEvent;
         private bool initializingQuality;
         private bool initializingAutomation;
+        private SkinPage? hostedSkinPage;
 
         public SettingsPage()
             : this(
@@ -87,6 +88,77 @@ namespace Gekota.WPF.Pages
 
             this.InitializeComponent();
             this.Loaded += this.SettingsPage_Loaded;
+            this.SettingsSections.SelectedIndex = 0;
+        }
+
+        private void SettingsSections_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (this.GeneralScroll == null || this.SettingsSectionHost == null) return;
+            var index = this.SettingsSections.SelectedIndex;
+            if (index <= 0)
+            {
+                this.hostedSkinPage?.DetachHosting();
+                this.hostedSkinPage = null;
+                this.SettingsSectionHost.Visibility = Visibility.Collapsed;
+                this.SettingsSectionHost.Content = null;
+                this.SettingsSectionHost.Tag = null;
+                this.GeneralScroll.Visibility = Visibility.Visible;
+                return;
+            }
+
+            this.GeneralScroll.Visibility = Visibility.Collapsed;
+            this.SettingsSectionHost.Visibility = Visibility.Visible;
+            if (index == 1)
+            {
+                if (this.SettingsSectionHost.Tag as string != "theme")
+                {
+                    var skin = new SkinPage();
+                    this.hostedSkinPage = skin;
+                    this.SettingsSectionHost.Content = skin.TakeContentForHosting();
+                    this.SettingsSectionHost.Tag = "theme";
+                }
+                return;
+            }
+
+            if (index == 2)
+            {
+                this.hostedSkinPage?.DetachHosting();
+                this.hostedSkinPage = null;
+                if (this.SettingsSectionHost.Tag as string != "announcement")
+                {
+                    var page = new AnnouncementPage();
+                    var content = page.Content;
+                    page.Content = null;
+                    this.SettingsSectionHost.Content = content;
+                    this.SettingsSectionHost.Tag = "announcement";
+                }
+            }
+            else if (index == 3)
+            {
+                this.hostedSkinPage?.DetachHosting();
+                this.hostedSkinPage = null;
+                if (this.SettingsSectionHost.Tag as string != "log")
+                {
+                    var page = new LogPage();
+                    var content = page.Content;
+                    page.Content = null;
+                    this.SettingsSectionHost.Content = content;
+                    this.SettingsSectionHost.Tag = "log";
+                }
+            }
+            else
+            {
+                this.hostedSkinPage?.DetachHosting();
+                this.hostedSkinPage = null;
+                if (this.SettingsSectionHost.Tag as string != "about")
+                {
+                    var page = new AboutPage();
+                    var content = page.Content;
+                    page.Content = null;
+                    this.SettingsSectionHost.Content = content;
+                    this.SettingsSectionHost.Tag = "about";
+                }
+            }
         }
 
         // ==================== INotifyPropertyChanged ====================

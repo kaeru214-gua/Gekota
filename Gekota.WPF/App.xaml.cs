@@ -1,5 +1,6 @@
 using System;
 using System.Windows;
+using Gekota.WPF.Services;
 using Microsoft.Win32;
 using Serilog;
 
@@ -24,6 +25,8 @@ namespace Gekota.WPF
         {
             try
             {
+                MacTheme.Apply();
+
                 SystemEvents.TimeChanged += this.SystemEvents_TimeChanged;
                 SystemEvents.SessionEnding += this.SystemEvents_SessionEnding;
                 SystemEvents.PowerModeChanged += this.SystemEvents_PowerModeChanged;

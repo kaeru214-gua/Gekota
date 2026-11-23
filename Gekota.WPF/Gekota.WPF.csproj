@@ -63,6 +63,7 @@
     <Reference Include="System.Transactions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Security" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -103,6 +104,15 @@
     <Compile Include="Services\CompressSession.cs" />
     <Compile Include="Services\CompressFileItem.cs" />
     <Compile Include="Services\AppearanceSettings.cs" />
+    <Compile Include="Services\LiveStreamProvider.cs" />
+    <Compile Include="Services\DanmakuSender.cs" />
+    <Compile Include="Services\LivePlaybackServer.cs" />
+    <Content Include="Assets\LivePlayer\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\default_background.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
       <PackageReference Include="LibVLCSharp" Version="3.8.5" />
     <PackageReference Include="LibVLCSharp.WPF" Version="3.8.5" />
     <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.20" />
@@ -123,6 +133,9 @@
     </Compile>
     <Compile Include="Controls\CloseWindowConfirmDialog.xaml.cs">
       <DependentUpon>CloseWindowConfirmDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\NativeLiveWindow.xaml.cs">
+      <DependentUpon>NativeLiveWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Controls\ContentDialogExtensions.cs" />
     <Compile Include="Controls\DeleteRoomConfirmDialog.xaml.cs">
@@ -211,6 +224,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Controls\NativeLiveWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Controls\DeleteRoomConfirmDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -287,6 +304,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Pages\DynamicsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Pages\SchedulePage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Pages\SettingsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -333,6 +358,16 @@
     </Compile>
     <Compile Include="Pages\AdvancedSettingsPage.xaml.cs">
       <DependentUpon>AdvancedSettingsPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Services\RecordingSegmentMerger.cs" />
+    <Compile Include="Services\OfficialTextScheduleService.cs" />
+    <Compile Include="Services\BackgroundImageService.cs" />
+    <Compile Include="Services\MoegirlThemeService.cs" />
+    <Compile Include="Pages\DynamicsPage.xaml.cs">
+      <DependentUpon>DynamicsPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\SchedulePage.xaml.cs">
+      <DependentUpon>SchedulePage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Pages\SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
@@ -513,4 +548,32 @@
     <Compile Include="Services\AnnouncementContent.cs" />
     <Compile Include="Services\AnnouncementState.cs" />
   </ItemGroup>
-</Project>
+  <ItemGroup>
+    <Page Include="Resources\MacTheme.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Controls\DockIcon.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Compile Include="Controls\DockIcon.xaml.cs">
+      <DependentUpon>DockIcon.xaml</DependentUpon>
+    </Compile>
+    <Page Include="Pages\SkinPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Compile Include="Pages\SkinPage.xaml.cs">
+      <DependentUpon>SkinPage.xaml</DependentUpon>
+    </Compile>
+    <Page Include="Pages\ToolboxHomePage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Compile Include="Pages\ToolboxHomePage.xaml.cs">
+      <DependentUpon>ToolboxHomePage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Services\MacTheme.cs" />
+    <Compile Include="Services\WindowEffects.cs" />
+  </ItemGroup></Project>

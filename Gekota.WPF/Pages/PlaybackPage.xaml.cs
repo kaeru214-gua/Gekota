@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using IOPath = System.IO.Path;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
@@ -23,38 +24,21 @@ namespace Gekota.WPF.Pages
     public partial class PlaybackPage
     {
         private static readonly ILogger logger = Log.ForContext<PlaybackPage>();
-        private static readonly HttpClient coverHttpClient;
-
-        static PlaybackPage()
-        {
-            coverHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            coverHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0");
-            coverHttpClient.DefaultRequestHeaders.Referrer = new Uri("https://www.bilibili.com/");
-        }
-
-        private sealed class RoomCardUi
-        {
-            public RoomCardUi(Ellipse dot, TextBlock text, Border selection)
-            {
-                this.Dot = dot;
-                this.Text = text;
-                this.Selection = selection;
-            }
-
-            public Ellipse Dot { get; }
-            public TextBlock Text { get; }
-            public Border Selection { get; }
-        }
 
         private IRoom? _selectedRoom;
         private IRoom? _clipWatchedRoom;
+        private IRoom? _danmakuRoom;
         private string? _currentUrl;
         private bool _webViewReady;
+        private static int? _pendingRoomId;
+
+        private readonly LiveStreamProvider _streamProvider = new();
+        private readonly DanmakuSender _danmakuSender = new();
+        private LivePlaybackServer? _playbackServer;
+
+        internal static void RequestRoom(IRoom room) => _pendingRoomId = room.RoomConfig.RoomId;
 
         private readonly DispatcherTimer _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        private readonly Dictionary<Guid, RoomCardUi> _cards = new Dictionary<Guid, RoomCardUi>();
-        private readonly Dictionary<Guid, BitmapImage> _coverCache = new Dictionary<Guid, BitmapImage>();
-        private List<Guid> _stripOrder = new List<Guid>();
 
         private IRecorder? Recorder => this.DataContext as IRecorder;
 
@@ -71,7 +55,75 @@ namespace Gekota.WPF.Pages
             this._refreshTimer.Tick += this.RefreshTimer_Tick;
             this._refreshTimer.Start();
             this.SyncStrip();
-            this.AutoSelectFirst();
+
+            try
+            {
+                this._playbackServer ??= new LivePlaybackServer(this._streamProvider, this._danmakuSender);
+                this._playbackServer.Start();
+                this.SyncStrip();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[实时播放] 启动本机播放服务失败");
+                this.SetStatus("启动本机播放服务失败：" + ex.Message);
+            }
+
+            var pending = _pendingRoomId;
+            _pendingRoomId = null;
+            var target = pending is int roomId
+                ? this.Recorder?.Rooms.FirstOrDefault(r => r.RoomConfig.RoomId == roomId || r.ShortId == roomId)
+                : null;
+
+            if (target != null)
+                this.SelectRoom(target);
+            else
+                this.ShowMonitor();
+        }
+
+        private static string GetDesktopWallpaperPath()
+        {
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                    @"Control Panel\Desktop", writable: false);
+                return key?.GetValue("Wallpaper") as string ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private void ShowMonitor()
+        {
+            _ = this.NavigateMonitorAsync();
+        }
+
+        private async Task NavigateMonitorAsync()
+        {
+            var server = this._playbackServer;
+            if (server == null) return;
+            try
+            {
+                await this.EnsureWebViewAsync();
+                var background = AppearanceManager.Current.BackgroundImagePath;
+                if (string.IsNullOrWhiteSpace(background)) background = GetDesktopWallpaperPath();
+                server.MonitorBackgroundPath = background ?? "";
+                var url = server.BaseUrl + "/monitor.html";
+                if (this._currentUrl == url) return;
+                this._currentUrl = url;
+                this.LiveWebView.CoreWebView2.Navigate(url);
+                this.SetStatus(null);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[实时播放] 加载监控室失败");
+                this.SetStatus("加载监控室失败：" + ex.Message);
+            }
+        }
+
+        private void ShowPlayer()
+        {
         }
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
@@ -79,8 +131,13 @@ namespace Gekota.WPF.Pages
             this._refreshTimer.Stop();
             this._refreshTimer.Tick -= this.RefreshTimer_Tick;
             if (this._clipWatchedRoom != null)
+            {
                 this._clipWatchedRoom.PropertyChanged -= this.OnRoomPropertyChanged;
-            this._clipWatchedRoom = null;
+                this._clipWatchedRoom = null;
+            }
+            this.DetachDanmakuRoom();
+            this._playbackServer?.Dispose();
+            this._playbackServer = null;
         }
 
         // ============================ 状态 ============================
@@ -106,12 +163,14 @@ namespace Gekota.WPF.Pages
             var options = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
             var env = await CoreWebView2Environment.CreateAsync(null, null, options);
             await this.LiveWebView.EnsureCoreWebView2Async(env);
+            this.LiveWebView.DefaultBackgroundColor = System.Drawing.Color.Transparent;
 
             // ② 取消 WebView 级别静音
             // 注意：CoreWebView2Settings 没有 IsMuted，静音由下方 JS 处理
 
             // ③ 每次导航完成后尝试把 <video> 取消静音
             this.LiveWebView.CoreWebView2.NavigationCompleted += this.OnNavigationCompleted;
+            this.LiveWebView.CoreWebView2.WebMessageReceived += this.OnWebMessageReceived;
 
             await this.InjectCookiesAsync();
             this._webViewReady = true;
@@ -119,7 +178,74 @@ namespace Gekota.WPF.Pages
 
         private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            // WebView2 是独立 HWND，等页面真正导航完成后再显示，避免切入播放页时把旧画面顶出来。
+            this.LiveWebView.Visibility = Visibility.Visible;
+            if (this._currentUrl != null &&
+                this._currentUrl.EndsWith("/monitor.html", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             _ = this.TryUnmuteAsync();
+            this.PostPlaybackInfo();
+        }
+
+        private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                logger.Debug("[监控室] 收到页面消息 {Json}", e.WebMessageAsJson);
+                var jo = Newtonsoft.Json.Linq.JObject.Parse(e.WebMessageAsJson);
+                var messageType = jo.Value<string>("type");
+                if (string.Equals(messageType, "back", StringComparison.OrdinalIgnoreCase))
+                {
+                    this.ShowMonitor();
+                    return;
+                }
+                if (string.Equals(messageType, "command", StringComparison.OrdinalIgnoreCase))
+                {
+                    switch (jo.Value<string>("action"))
+                    {
+                        case "folder": this.OpenRecordingFolder(); break;
+                        case "capture": this.CaptureCurrentFrame(); break;
+                        case "clip": this.ToggleCurrentClip(); break;
+                    }
+                    return;
+                }
+                if (!string.Equals(messageType, "open", StringComparison.OrdinalIgnoreCase)) return;
+                var roomId = jo.Value<int?>("room") ?? 0;
+                var room = this.Recorder?.Rooms.FirstOrDefault(
+                    r => r.RoomConfig.RoomId == roomId || r.ShortId == roomId);
+                if (room != null) this.SelectRoom(room);
+            }
+            catch (Exception ex)
+            {
+                logger.Debug(ex, "[实时播放] 处理监控室消息失败");
+            }
+        }
+
+        private void PostPlaybackInfo()
+        {
+            var core = this.LiveWebView.CoreWebView2;
+            if (core == null) return;
+            try
+            {
+                var payload = Newtonsoft.Json.JsonConvert.SerializeObject(new
+                {
+                    type = "info",
+                    title = this._selectedRoom?.Name ?? "",
+                    logged = this._danmakuSender.IsReady,
+                });
+                core.PostWebMessageAsJson(payload);
+
+                var state = Newtonsoft.Json.JsonConvert.SerializeObject(new
+                {
+                    type = "state",
+                    text = this._selectedRoom?.DanmakuConnected == true ? "已连接" : "连接中…",
+                });
+                core.PostWebMessageAsJson(state);
+            }
+            catch { }
         }
 
         /// <summary>页面加载后多次尝试取消静音（B 站播放器会记住上次静音状态，需要覆盖）。</summary>
@@ -177,147 +303,26 @@ namespace Gekota.WPF.Pages
             }
         }
 
-        // ============================ 房间卡片条 ============================
+        // ============================ 监控室数据 ============================
 
         private void SyncStrip()
         {
             try
             {
                 var rec = this.Recorder;
-                if (rec == null)
+                var rooms = new List<MonitorRoomInfo>();
+                if (rec != null)
                 {
-                    if (this._stripOrder.Count > 0)
-                    {
-                        this._stripOrder.Clear();
-                        this._cards.Clear();
-                        this.RoomStrip.Children.Clear();
-                    }
-                    return;
-                }
-
-                var ids = new List<Guid>();
-                foreach (var r in rec.Rooms) ids.Add(r.ObjectId);
-
-                var changed = ids.Count != this._stripOrder.Count;
-                if (!changed)
-                {
-                    for (var i = 0; i < ids.Count; i++)
-                        if (ids[i] != this._stripOrder[i]) { changed = true; break; }
-                }
-
-                if (changed)
-                {
-                    this._stripOrder = ids;
-                    this._cards.Clear();
-                    this.RoomStrip.Children.Clear();
                     foreach (var r in rec.Rooms)
-                        this.RoomStrip.Children.Add(this.BuildRoomButton(r));
+                    {
+                        var cover = r.RawBilibiliApiJsonData?["room_info"]?["cover"]?.ToObject<string>() ?? "";
+                        rooms.Add(new MonitorRoomInfo(r.RoomConfig.RoomId, r.Name ?? "", cover, r.Streaming));
+                    }
                 }
-                else
-                {
-                    foreach (var r in rec.Rooms) this.UpdateCardVisual(r);
-                }
 
-                this.HighlightSelection();
+                if (this._playbackServer != null) this._playbackServer.MonitorRooms = rooms;
             }
-            catch (Exception ex) { logger.Warning(ex, "[实时播放] 刷新卡片条失败"); }
-        }
-
-        private Button BuildRoomButton(IRoom room)
-        {
-            var btn = new Button
-            {
-                Width = 150,
-                Height = 96,
-                Margin = new Thickness(4, 4, 4, 4),
-                Background = new SolidColorBrush(Color.FromArgb(0x22, 0, 0, 0)),
-                BorderBrush = (Brush)FindResource("SystemControlBackgroundAccentBrush"),
-                BorderThickness = new Thickness(1, 1, 1, 1),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Focusable = false,
-                Tag = room,
-            };
-            btn.Click += this.RoomShortcut_Click;
-
-            var grid = new Grid();
-            var cover = new Image { Stretch = Stretch.UniformToFill, Opacity = 0.85 };
-            grid.Children.Add(cover);
-
-            var statusDot = new Ellipse
-            {
-                Width = 8, Height = 8, Margin = new Thickness(0, 0, 6, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            var statusText = new TextBlock
-            {
-                Foreground = Brushes.White, FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            var sp = new StackPanel { Orientation = Orientation.Horizontal };
-            sp.Children.Add(statusDot);
-            sp.Children.Add(statusText);
-
-            var statusBorder = new Border
-            {
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Background = new SolidColorBrush(Color.FromArgb(0x99, 0, 0, 0)),
-                Padding = new Thickness(6, 2, 6, 2),
-                Child = sp,
-            };
-            grid.Children.Add(statusBorder);
-
-            var selBorder = new Border
-            {
-                BorderThickness = new Thickness(2, 2, 2, 2),
-                BorderBrush = Brushes.Transparent,
-                CornerRadius = new CornerRadius(3),
-                IsHitTestVisible = false,
-            };
-            grid.Children.Add(selBorder);
-
-            btn.Content = grid;
-            this._cards[room.ObjectId] = new RoomCardUi(statusDot, statusText, selBorder);
-
-            this.LoadCover(room, cover);
-            this.UpdateCardVisual(room);
-            return btn;
-        }
-
-        private void UpdateCardVisual(IRoom room)
-        {
-            if (!this._cards.TryGetValue(room.ObjectId, out var ui)) return;
-            ui.Dot.Fill = room.Recording ? Brushes.Red : room.Streaming ? Brushes.LimeGreen : Brushes.Gray;
-            ui.Text.Text = room.Recording ? "录制中" : room.Streaming ? "直播中" : room.RoomConfig.RoomId.ToString();
-        }
-
-        private void LoadCover(IRoom room, Image image)
-        {
-            if (this._coverCache.TryGetValue(room.ObjectId, out var cached)) { image.Source = cached; return; }
-            _ = this.LoadCoverAsync(room, image);
-        }
-
-        private async Task LoadCoverAsync(IRoom room, Image image)
-        {
-            try
-            {
-                var coverUrl = room.RawBilibiliApiJsonData?["room_info"]?["cover"]?.ToObject<string>();
-                if (string.IsNullOrWhiteSpace(coverUrl)) return;
-
-                var bytes = await coverHttpClient.GetByteArrayAsync(coverUrl).ConfigureAwait(false);
-                await this.Dispatcher.InvokeAsync(() =>
-                {
-                    using var ms = new MemoryStream(bytes);
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.StreamSource = ms;
-                    bmp.EndInit();
-                    bmp.Freeze();
-                    this._coverCache[room.ObjectId] = bmp;
-                    image.Source = bmp;
-                });
-            }
-            catch (Exception ex) { logger.Debug(ex, "[实时播放] 封面加载失败"); }
+            catch (Exception ex) { logger.Warning(ex, "[实时播放] 刷新监控室数据失败"); }
         }
 
         private void RefreshTimer_Tick(object? sender, EventArgs e)
@@ -332,23 +337,12 @@ namespace Gekota.WPF.Pages
 
         // ============================ 选择 / 导航 ============================
 
-        private void AutoSelectFirst()
-        {
-            var rec = this.Recorder;
-            if (rec == null || rec.Rooms.Count == 0) { this.SetStatus("还没有添加房间"); return; }
-
-            IRoom? target = null;
-            foreach (var r in rec.Rooms) { if (r.Recording) { target = r; break; } }
-            if (target == null) foreach (var r in rec.Rooms) { if (r.Streaming) { target = r; break; } }
-            if (target == null) target = rec.Rooms[0];
-
-            this.SelectRoom(target);
-        }
-
         private void RoomShortcut_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button btn && btn.Tag is IRoom room) this.SelectRoom(room);
         }
+
+        private void BackButton_Click(object sender, RoutedEventArgs e) => this.ShowMonitor();
 
         private void SelectRoom(IRoom room)
         {
@@ -360,15 +354,28 @@ namespace Gekota.WPF.Pages
             this._selectedRoom = room;
             this.HighlightSelection();
             this.UpdateClipIcon();
+            this.AttachDanmakuRoom(room);
+            this.ShowPlayer();
             this.NavigateToLive(room);
         }
 
-        /// <summary>内嵌打开 B 站直播间网页（已注入登录 Cookie）。</summary>
+        /// <summary>打开本地纯净播放页（不加载 B 站页面）。</summary>
 #pragma warning disable VSTHRD100
         private async void NavigateToLive(IRoom room)
 #pragma warning restore VSTHRD100
         {
-            var url = "https://live.bilibili.com/" + room.RoomConfig.RoomId;
+            var server = this._playbackServer;
+            if (server == null)
+            {
+                this.SetStatus("本机播放服务未启动");
+                return;
+            }
+
+            server.CurrentRoomId = room.RoomConfig.RoomId;
+            server.CurrentQn = 0;
+            server.CurrentTitle = room.Name ?? "";
+
+            var url = server.BaseUrl + "/index.html?room=" + room.RoomConfig.RoomId;
             if (this._currentUrl == url) return;
             this._currentUrl = url;
 
@@ -380,9 +387,43 @@ namespace Gekota.WPF.Pages
             }
             catch (Exception ex)
             {
-                logger.Warning(ex, "[实时播放] 加载直播间网页失败");
-                this.SetStatus("加载直播间网页失败：" + ex.Message);
+                logger.Warning(ex, "[实时播放] 加载本地播放页失败");
+                this.SetStatus("加载播放页失败：" + ex.Message);
             }
+        }
+
+        private void AttachDanmakuRoom(IRoom room)
+        {
+            if (ReferenceEquals(this._danmakuRoom, room)) return;
+            this.DetachDanmakuRoom();
+            this._danmakuRoom = room;
+            room.DanmakuReceived += this.OnRoomDanmaku;
+        }
+
+        private void DetachDanmakuRoom()
+        {
+            if (this._danmakuRoom == null) return;
+            this._danmakuRoom.DanmakuReceived -= this.OnRoomDanmaku;
+            this._danmakuRoom = null;
+        }
+
+        private void OnRoomDanmaku(object? sender, RoomDanmakuEventArgs e)
+        {
+            try
+            {
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(new
+                {
+                    type = "danmaku",
+                    uid = e.UserId,
+                    uname = e.UserName,
+                    text = e.Text,
+                });
+                _ = this.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try { this.LiveWebView.CoreWebView2?.PostWebMessageAsJson(json); } catch { }
+                }));
+            }
+            catch { }
         }
 
         // ============================ 剪刀 ============================
@@ -395,28 +436,50 @@ namespace Gekota.WPF.Pages
 
         private void UpdateClipIcon()
         {
-            var clipping = this._selectedRoom != null && this._selectedRoom.IsClipping;
-            this.ClipIcon.Foreground = clipping ? Brushes.Red : Brushes.White;
         }
 
-        private void HighlightSelection()
+        internal void SetWebViewVisible(bool visible)
         {
             try
             {
-                foreach (var kv in this._cards)
-                {
-                    var isSel = this._selectedRoom != null && kv.Key == this._selectedRoom.ObjectId;
-                    kv.Value.Selection.BorderBrush = isSel
-                        ? (Brush)FindResource("SystemControlBackgroundAccentBrush")
-                        : Brushes.Transparent;
-                }
+                this.LiveWebView.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
             }
-            catch (Exception ex) { logger.Debug(ex, "[实时播放] 更新选中高亮失败"); }
+            catch { }
+        }
+
+        internal void OpenRecordingFolder() => this.OpenFolderButton_Click(this, new RoutedEventArgs());
+        internal void CaptureCurrentFrame() => this.CaptureButton_Click(this, new RoutedEventArgs());
+        internal void ToggleCurrentClip() => this.ClipButton_Click(this, new RoutedEventArgs());
+
+        private void HighlightSelection()
+        {
+            // 监控室高亮由 HTML 页面自己处理。
         }
 
 
-        private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
+        private void NativeButton_Click(object sender, RoutedEventArgs e)
         {
+            if (this._selectedRoom == null)
+            {
+                this.SetStatus("请先选择一个房间");
+                return;
+            }
+
+            try
+            {
+                new Gekota.WPF.Controls.NativeLiveWindow(this._selectedRoom)
+                {
+                    Owner = Window.GetWindow(this),
+                }.Show();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[实时播放] 打开 LibVLC 原生播放失败");
+                this.SetStatus("打开原生播放失败：" + ex.Message);
+            }
+        }
+
+        private void OpenFolderButton_Click(object sender, RoutedEventArgs e)        {
             try
             {
                 var dir = this.ResolveCurrentRecordingFolder();

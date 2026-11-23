@@ -5,10 +5,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CliWrap;
 using CliWrap.Buffered;
+using Gekota;
 using Gekota.Core;
 using Gekota.Core.Config;
 using Gekota.DependencyInjection;
@@ -38,12 +42,21 @@ namespace Gekota.WPF.Pages
         internal static bool CommandArgumentHide = false;
 
         private readonly Dictionary<string, Type> PageMap = new Dictionary<string, Type>();
+        private readonly Dictionary<string, object> pageCache = new Dictionary<string, object>();
+        private static readonly Dictionary<string, string> ToolPageTitles = new Dictionary<string, string>
+        {
+            ["ToolboxAutoFixPage"] = "录播修复",
+            ["ToolboxDanmakuMergerPage"] = "弹幕合并",
+            ["ToolboxDanmakuConvertPage"] = "弹幕转换",
+            ["ToolboxCompressPage"] = "视频压制",
+            ["ToolboxRemuxPage"] = "转封装",
+        };
         private readonly System.Collections.Generic.HashSet<Guid> subscribedRooms = new System.Collections.Generic.HashSet<Guid>();
         private readonly WorkDirectoryLoader workDirectoryLoader = new WorkDirectoryLoader();
-        private readonly NavigationTransitionInfo transitionInfo = new DrillInNavigationTransitionInfo();
+        private readonly DispatcherTimer statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
 
         internal static IServiceProvider? ServiceProvider { get; private set; }
-        private ServiceProvider serviceProvider = null!;
+        internal static RootPage? Current { get; private set; }        private ServiceProvider serviceProvider = null!;
         internal RootModel Model { get; private set; }
 
         internal static Action? SwitchToSettingsPage { get; private set; }
@@ -53,6 +66,8 @@ namespace Gekota.WPF.Pages
             void AddType(Type t) => this.PageMap.Add(t.Name, t);
             AddType(typeof(RoomListPage));
             AddType(typeof(PlaybackPage));
+            AddType(typeof(SchedulePage));
+            AddType(typeof(DynamicsPage));
             AddType(typeof(SettingsPage));
             AddType(typeof(LogPage));
             AddType(typeof(AboutPage));
@@ -62,7 +77,11 @@ namespace Gekota.WPF.Pages
             AddType(typeof(ToolboxDanmakuConvertPage));
             AddType(typeof(ToolboxCompressPage));
             AddType(typeof(ToolboxRemuxPage));
+            AddType(typeof(ToolboxHomePage));
+            AddType(typeof(SkinPage));
             AddType(typeof(UserPage));
+
+            Current = this;
 
             this.Model = new RootModel();
             this.DataContext = this.Model;
@@ -70,24 +89,39 @@ namespace Gekota.WPF.Pages
             this.InitializeComponent();
             CompressSession.Instance.PropertyChanged += (s, e) => this.RefreshCompressBar();
 
-#if DEBUG
-            this.DebugBuildIcon.Visibility = Visibility.Visible;
-#endif
-
             var mw = Application.Current.MainWindow as NewMainWindow;
             if (mw is not null)
                 mw.NativeBeforeWindowClose += this.RootPage_NativeBeforeWindowClose;
 
             Loaded += this.RootPage_Loaded;
-            Loaded += (s, e) => this.ApplyAppearance();
+            Loaded += (s, e) =>
+            {
+                this.StartStatusTimer();
+                this.AnimateShellIn();
+                this.ApplyAppearance();
+                this.ScheduleUiSnapshot();
+            };
+            Unloaded += (s, e) => this.statusTimer.Stop();
             Gekota.WPF.Services.AppearanceManager.Changed += (s, e) => this.ApplyAppearance();
 
             this.UpdateUserIcon();
 
-            SwitchToSettingsPage = () =>
+            try
             {
-                this.SettingsPageNavigationViewItem.IsSelected = true;
-            };
+                var appearance = Gekota.WPF.Services.AppearanceManager.Current;
+                if (!string.IsNullOrWhiteSpace(appearance.BackgroundImagePath) &&
+                    File.Exists(appearance.BackgroundImagePath))
+                    _ = BackgroundImageService.GetAsync(appearance.BackgroundImagePath);
+            }
+            catch { }
+
+            SwitchToSettingsPage = () => this.NavigateToPage("SettingsPage");
+        }
+
+        private static void CloseMainWindowWithoutConfirm()
+        {
+            if (Application.Current?.MainWindow is NewMainWindow window)
+                window.CloseWithoutConfirmAction();
         }
 
         private void RootPage_NativeBeforeWindowClose(object sender, EventArgs e)
@@ -100,6 +134,17 @@ namespace Gekota.WPF.Pages
         private async void RootPage_Loaded(object sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
         {
+            try
+            {
+                if (Application.Current.MainWindow is NewMainWindow mainWindow)
+                {
+                    // 首次配置/选择工作目录期间置顶，避免被 Visual Studio 等窗口挡住。
+                    mainWindow.Topmost = true;
+                    mainWindow.Activate();
+                }
+            }
+            catch (Exception) { }
+
             if (CommandArgumentFirstRun)
             {
                 _ = Task.Run(async () =>
@@ -178,11 +223,13 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                                 break;
                             case ContentDialogResult.Secondary:
                                 logger.Debug("Toolbox mode selected");
+                                if (Application.Current.MainWindow is NewMainWindow toolboxWindow)
+                                    toolboxWindow.Topmost = false;
                                 return;
                             case ContentDialogResult.None:
                             default:
                                 logger.Debug("Exit selected");
-                                (Application.Current.MainWindow as NewMainWindow)!.CloseWithoutConfirmAction();
+                                CloseMainWindowWithoutConfirm();
                                 return;
                         }
 
@@ -233,7 +280,7 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
 
                     if (!SingleInstance.CheckMutex(path))
                     {
-                        (Application.Current.MainWindow as NewMainWindow)!.CloseWithoutConfirmAction();
+                        CloseMainWindowWithoutConfirm();
                         return;
                     }
 
@@ -242,9 +289,14 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     var recorder = this.serviceProvider.GetRequiredService<IRecorder>();
 
                     this.Model.Recorder = recorder;
-                    this.RoomListPageNavigationViewItem.IsEnabled = true;
-                    this.SettingsPageNavigationViewItem.IsEnabled = true;
-                    (Application.Current.MainWindow as NewMainWindow)!.HideToTray = true;
+                    this.DockHome.IsEnabled = true;
+                    this.DockPlayback.IsEnabled = true;
+                    this.DockSettings.IsEnabled = true;
+                    if (Application.Current.MainWindow is NewMainWindow mainWindow)
+                    {
+                        mainWindow.Topmost = false;
+                        mainWindow.HideToTray = true;
+                    }
                     NetworkChangeDetector.Enable();
 
                     recorder.StreamStarted += (sender, room) =>
@@ -266,6 +318,7 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                             if (this.subscribedRooms.Add(r.ObjectId))
                             {
                                 r.ClipEnded += this.Room_ClipEnded;
+                                r.PropertyChanged += this.Room_PropertyChanged;
                                 logger.Debug("[{RoomId}] 已订阅 ClipEnded", r.RoomConfig.RoomId);
                             }
                         }
@@ -282,13 +335,13 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                         {
                             if (firstUse)
                             {
-                                this.AnnouncementPageNavigationViewItem.IsSelected = true;
+                                this.NavigateToPage("AnnouncementPage");
                                 // 首次使用直接展示了公告页，不再额外弹窗
                                 AnnouncementState.MarkCurrentVersionShown();
                             }
                             else
                             {
-                                this.RoomListPageNavigationViewItem.IsSelected = true;
+                                this.NavigateToPage("RoomListPage");
                                 _ = this.ShowUpdateNoticeOnceAsync();
                             }
 
@@ -341,39 +394,113 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             .AddRecorder()
             .BuildServiceProvider();
 
-        private void NavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        // ============================================================
+        // Dock 导航 / 窗口行为
+        // ============================================================
+
+        private void DockIcon_Activated(object? sender, EventArgs e)
         {
-            if (args.IsSettingsSelected)
+            if (sender is DockIcon { Tag: string tag })
+                this.NavigateToPage(tag);
+        }
+
+        internal void NavigateToPage(string tag)
+        {
+            if (!this.PageMap.TryGetValue(tag, out var pageType))
             {
-                this.MainFrame.Navigate(typeof(SettingsPage), null, this.transitionInfo);
+                logger.Debug("[导航] 未知页面 {Tag}", tag);
+                return;
+            }
+
+            if (this.MainFrame.Content?.GetType() == pageType)
+            {
+                this.UpdateDockActive(tag);
+                return;
+            }
+
+            if (this.MainFrame.Content?.GetType() == pageType)
+            {
+                this.UpdateDockActive(tag);
+                return;
+            }
+
+            try
+            {
+                if (this.MainFrame.Content is PlaybackPage oldPlayback)
+                    oldPlayback.SetWebViewVisible(false);
+
+                if (!this.pageCache.TryGetValue(tag, out var page))
+                {
+                    page = Activator.CreateInstance(pageType);
+                    if (page != null && tag != "PlaybackPage")
+                        this.pageCache[tag] = page;
+                }
+                if (page == null) return;
+
+                // 使用 Frame 自带导航承载缓存页面，不做手动 Content 交换。
+                this.MainFrame.Navigate(page);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[导航] 打开页面 {Tag} 失败", tag);
+            }
+        }
+
+        private void ShowPage(object page)
+        {
+            this.UpdateDockActive(page.GetType().Name);
+            this.RefreshCompressBar();
+            this.ApplyContentSheetLayout(page);
+        }
+
+        /// <summary>
+        /// WebView2 是独立 HWND，会盖在 WPF 弹窗之上。打开 ContentDialog 时先把播放页 WebView 收起。
+        /// </summary>
+        internal void SetDialogOverlayMode(bool dialogOpen)
+        {
+            if (this.MainFrame.Content is PlaybackPage playback)
+                playback.SetWebViewVisible(!dialogOpen);
+        }
+
+        internal void OpenPlayback(IRoom room)
+        {
+            logger.Debug("[导航] 打开实时播放，直播间 {RoomId}", room.RoomConfig.RoomId);
+            PlaybackPage.RequestRoom(room);
+            this.NavigateToPage("PlaybackPage");
+        }
+
+        private void UpdateDockActive(string? tag = null)
+        {
+            tag ??= this.MainFrame.Content?.GetType().Name;
+
+            this.DockHome.IsActive = tag == "RoomListPage";
+            this.DockPlayback.IsActive = tag == "PlaybackPage";
+            this.DockSchedule.IsActive = tag == "SchedulePage";
+            this.DockToolbox.IsActive = tag == "ToolboxHomePage" || (tag?.StartsWith("Toolbox", StringComparison.Ordinal) ?? false);
+            this.DockUser.IsActive = tag == "UserPage";
+            this.DockSettings.IsActive = tag == "SettingsPage";
+            this.DockDynamics.IsActive = tag == "DynamicsPage";
+
+            if (tag != null && ToolPageTitles.TryGetValue(tag, out var toolTitle))
+            {
+                this.ToolPageHeader.Visibility = Visibility.Visible;
+                this.ToolPageTitleText.Text = toolTitle;
             }
             else
             {
-                var selectedItem = (NavigationViewItem)args.SelectedItem;
-                var selectedItemTag = (string)selectedItem.Tag;
-                if (selectedItemTag.StartsWith("http"))
-                {
-                    try
-                    {
-                        this.MainFrame.Navigate(new Uri(selectedItemTag), null, this.transitionInfo);
-                    }
-                    catch (Exception)
-                    {
-                    }
-                }
-                else if (this.PageMap.ContainsKey(selectedItemTag))
-                {
-                    var pageType = this.PageMap[selectedItemTag];
-                    this.MainFrame.Navigate(pageType, null, this.transitionInfo);
-                }
+                this.ToolPageHeader.Visibility = Visibility.Collapsed;
             }
         }
+
+        private void ToolPageBack_Click(object sender, RoutedEventArgs e) => this.NavigateToPage("ToolboxHomePage");
 
         /// <summary>根据当前页面类型与压制状态，控制全局进度条的显隐与内容。</summary>
         private void RefreshCompressBar()
         {
             var page = this.MainFrame.Content;
             var hide = page is ToolboxCompressPage
+                    || page is ToolboxHomePage
+                    || page is SkinPage
                     || page is AnnouncementPage
                     || page is AboutPage
                     || page is LogPage;
@@ -395,35 +522,341 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
         {
             try
             {
-                if (sender is not ModernWpf.Controls.Frame frame) return;
-
-                while (frame.BackStackDepth > 0)
+                if (sender is ModernWpf.Controls.Frame frame)
                 {
-                    frame.RemoveBackEntry();
+                    while (frame.BackStackDepth > 0)
+                        frame.RemoveBackEntry();
                 }
             }
             catch (Exception)
             {
             }
 
+            this.UpdateDockActive();
             this.RefreshCompressBar();
-        }
+            this.ApplyContentSheetLayout(e.Content);        }
 
-        private void SwitchLightDarkTheme_Click(object sender, RoutedEventArgs e)
+        private void ApplyContentSheetLayout(object? content)
         {
-            if (this.Dispatcher.CheckAccess())
-                changeTheme();
-            else
-                _ = this.Dispatcher.BeginInvoke(changeTheme);
-
-            static void changeTheme()
-            {
-                ThemeManager.Current.ApplicationTheme =
-                    ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Dark
-                    ? ApplicationTheme.Light
-                    : ApplicationTheme.Dark;
-            };
+            // 所有页面统一使用完全透明的内容层，避免切页时 ContentSheet 背景变化产生闪屏。
+            // Dock 是 RootPage 的固定子元素，不随页面重建。
+            this.MaximizeWindowButton.Visibility = Visibility.Visible;
+            this.DockColumn.Width = new GridLength(136);
+            this.Dock.Width = 88;
+            this.ContentSheet.Margin = new Thickness(0);
+            this.ContentSheet.CornerRadius = new CornerRadius(0);
+            this.ContentSheet.Background = System.Windows.Media.Brushes.Transparent;
+            this.DockShadow.Opacity = 0.24;
         }
+
+        private void AnimatePageIn()
+        {
+            try
+            {
+                var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+                this.MainFrame.BeginAnimation(OpacityProperty,
+                    new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(170)) { EasingFunction = ease });
+
+                if (this.MainFrame.RenderTransform is not TranslateTransform translate)
+                {
+                    translate = new TranslateTransform();
+                    this.MainFrame.RenderTransform = translate;
+                }
+                translate.BeginAnimation(TranslateTransform.YProperty,
+                    new DoubleAnimation(9, 0, TimeSpan.FromMilliseconds(200)) { EasingFunction = ease });
+            }
+            catch (Exception ex) { logger.Debug(ex, "[导航] 页面转场失败"); }
+        }
+
+        private void AnimateShellIn()
+        {
+            try
+            {
+                var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+                this.RootGrid.Opacity = 0;
+                this.RootGrid.BeginAnimation(OpacityProperty,
+                    new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(240)) { EasingFunction = ease });
+            }
+            catch (Exception) { }
+        }
+
+        /// <summary>开发期视觉检查：设置 GEKOTA_UI_SNAPSHOT 环境变量后自动保存一张窗口渲染图。</summary>
+        private void ScheduleUiSnapshot()
+        {
+            var path = Environment.GetEnvironmentVariable("GEKOTA_UI_SNAPSHOT");
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            var skin = Environment.GetEnvironmentVariable("GEKOTA_UI_SKIN");
+            if (!string.IsNullOrWhiteSpace(skin))
+            {
+                try { AppearanceManager.SetThemeColor(skin); }
+                catch (Exception ex) { logger.Debug(ex, "[快照] 设置皮肤失败"); }
+            }
+
+            if (Environment.GetEnvironmentVariable("GEKOTA_UI_DARK") == "1")
+            {
+                try { MacTheme.ToggleLightDark(); }
+                catch (Exception ex) { logger.Debug(ex, "[快照] 切换深色失败"); }
+            }
+
+            var page = Environment.GetEnvironmentVariable("GEKOTA_UI_PAGE");
+            var openRoom = Environment.GetEnvironmentVariable("GEKOTA_UI_OPEN_ROOM");
+            if (!string.IsNullOrWhiteSpace(page) || !string.IsNullOrWhiteSpace(openRoom))
+            {
+                var navTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+                navTimer.Tick += (s, e) =>
+                {
+                    navTimer.Stop();
+
+                    if (int.TryParse(openRoom, out var roomId))
+                    {
+                        var room = this.Model.Recorder?.Rooms.FirstOrDefault(r => r.RoomConfig.RoomId == roomId || r.ShortId == roomId);
+                        if (room != null)
+                        {
+                            this.OpenPlayback(room);
+                            return;
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(page))
+                        this.NavigateToPage(page);
+                };
+                navTimer.Start();
+            }
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(13) };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                try
+                {
+                    this.SaveRootSnapshot(path);
+                    this.SaveWindowSnapshot(path);
+                    this.MaybeCaptureHomeMenu(path);
+                }
+                catch (Exception ex) { logger.Warning(ex, "[快照] 保存失败"); }
+            };
+            timer.Start();
+        }
+
+        private void MaybeCaptureHomeMenu(string basePath)
+        {
+            if (Environment.GetEnvironmentVariable("GEKOTA_UI_MENU") != "1") return;
+            if (this.MainFrame.Content is not RoomListPage roomListPage) return;
+            if (roomListPage.Content is not FrameworkElement homeRoot) return;
+            if (homeRoot.ContextMenu is not ContextMenu menu) return;
+
+            menu.PlacementTarget = homeRoot;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Center;
+            menu.IsOpen = true;
+
+            this.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            {
+                try
+                {
+                    var menuPath = Path.Combine(
+                        Path.GetDirectoryName(basePath) ?? string.Empty,
+                        Path.GetFileNameWithoutExtension(basePath) + ".menu.png");
+                    this.SaveElementSnapshot(menu, menuPath);
+                    menu.IsOpen = false;
+                }
+                catch (Exception ex) { logger.Debug(ex, "[快照] 渲染右键菜单失败"); }
+            }));
+        }
+
+        private void SaveRootSnapshot(string path)
+        {
+            this.RootGrid.UpdateLayout();
+            var width = (int)Math.Max(1, this.RootGrid.ActualWidth);
+            var height = (int)Math.Max(1, this.RootGrid.ActualHeight);
+
+            var visual = new DrawingVisual();
+            using (var dc = visual.RenderOpen())
+            {
+                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+                dc.DrawRectangle(new VisualBrush(this.RootGrid)
+                {
+                    Stretch = Stretch.None,
+                    AlignmentX = AlignmentX.Left,
+                    AlignmentY = AlignmentY.Top,
+                }, null, new Rect(0, 0, width, height));
+            }
+
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+            this.SaveBitmap(bitmap, path);
+
+            logger.Information("[快照] 已保存 {Path}，RootGrid.Opacity={Opacity}，Size={Width}x{Height}",
+                path, this.RootGrid.Opacity, width, height);
+        }
+
+        private void SaveWindowSnapshot(string basePath)
+        {
+            var window = Application.Current?.MainWindow;
+            if (window == null) return;
+
+            var root = VisualTreeHelper.GetChild(window, 0) as FrameworkElement;
+            if (root == null) return;
+
+            var path = Path.Combine(
+                Path.GetDirectoryName(basePath) ?? string.Empty,
+                Path.GetFileNameWithoutExtension(basePath) + ".window.png");
+
+            this.SaveElementSnapshot(root, path);
+        }
+
+        private void SaveElementSnapshot(FrameworkElement element, string path)
+        {
+            element.UpdateLayout();
+            var width = (int)Math.Max(1, element.ActualWidth);
+            var height = (int)Math.Max(1, element.ActualHeight);
+
+            var visual = new DrawingVisual();
+            using (var dc = visual.RenderOpen())
+            {
+                dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, width, height));
+                dc.DrawRectangle(new VisualBrush(element)
+                {
+                    Stretch = Stretch.None,
+                    AlignmentX = AlignmentX.Left,
+                    AlignmentY = AlignmentY.Top,
+                }, null, new Rect(0, 0, width, height));
+            }
+
+            var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+            this.SaveBitmap(bitmap, path);
+            logger.Information("[快照] 已保存菜单 {Path}，Size={Width}x{Height}", path, width, height);
+        }
+
+        private void SaveBitmap(BitmapSource bitmap, string path)
+        {
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var stream = File.Create(path);
+            encoder.Save(stream);
+        }
+
+        internal void SetWindowMaximized(bool maximized)
+        {
+            this.ShellClip.CornerRadius = new CornerRadius(maximized ? 0 : 21);
+            this.UpdateShellClip();
+        }
+
+        private void UpdateShellClip()
+        {
+            if (this.RootGrid.ActualWidth <= 0 || this.RootGrid.ActualHeight <= 0) return;
+
+            var host = Window.GetWindow(this);
+            var maximized = host != null && host.WindowState == WindowState.Maximized;
+            var radius = maximized ? 0 : 21;
+            this.ShellClip.CornerRadius = new CornerRadius(radius);
+            if (host != null) host.Background = System.Windows.Media.Brushes.Transparent;
+
+            var clip = new RectangleGeometry(
+                new Rect(0, 0, this.RootGrid.ActualWidth, this.RootGrid.ActualHeight), radius, radius);
+
+            // 背景图、底色和内容都在 RootGrid 里，必须一起裁，否则圆角处会被背景图填成方角。
+            this.RootGrid.Clip = clip;
+            this.ShellClip.Clip = clip;
+        }
+
+        private void ShellClip_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            this.UpdateShellClip();
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left) return;
+            var window = Window.GetWindow(this);
+            if (window == null) return;
+
+            if (e.ClickCount == 2)
+            {
+                ToggleWindowMaximize(window);
+                return;
+            }
+
+            try { window.DragMove(); }
+            catch (Exception) { }
+        }
+
+        private static void ToggleWindowMaximize(Window window) =>
+            window.WindowState = window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+
+        private void CloseWindowButton_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
+
+        private void MinimizeWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is { } window)
+                window.WindowState = WindowState.Minimized;
+        }
+
+        private void PlaybackFolderAction_Click(object sender, RoutedEventArgs e)
+        {
+            (this.MainFrame.Content as PlaybackPage)?.OpenRecordingFolder();
+        }
+
+        private void PlaybackCaptureAction_Click(object sender, RoutedEventArgs e)
+        {
+            (this.MainFrame.Content as PlaybackPage)?.CaptureCurrentFrame();
+        }
+
+        private void PlaybackClipAction_Click(object sender, RoutedEventArgs e)
+        {
+            (this.MainFrame.Content as PlaybackPage)?.ToggleCurrentClip();
+        }
+
+        private void MaximizeWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is { } window)
+                ToggleWindowMaximize(window);
+        }
+
+        private void DockMenuHome_Click(object sender, RoutedEventArgs e) => this.NavigateToPage("RoomListPage");
+
+        private void DockMenuSkin_Click(object sender, RoutedEventArgs e) => this.NavigateToPage("SettingsPage");
+
+        private void DockMenuSettings_Click(object sender, RoutedEventArgs e) => this.NavigateToPage("SettingsPage");
+
+        private void DockMenuTheme_Click(object sender, RoutedEventArgs e) => this.ToggleTheme();
+
+        private void DockMenuQuit_Click(object sender, RoutedEventArgs e) =>
+            (Application.Current.MainWindow as NewMainWindow)?.Close();
+
+        private void StartStatusTimer()
+        {
+            if (this.statusTimer.IsEnabled) return;
+            this.statusTimer.Tick += (s, e) => this.UpdateStatusPill();
+            this.statusTimer.Start();
+            this.UpdateStatusPill();
+        }
+
+        private void UpdateStatusPill()
+        {
+            try
+            {
+                var recorder = this.Model.Recorder;
+                if (recorder == null)
+                {
+                    this.DockPlayback.Badge = string.Empty;
+                    return;
+                }
+
+                var recording = recorder.Rooms.Count(r => r.Recording);
+                this.DockPlayback.Badge = recording > 0 ? recording.ToString() : string.Empty;
+            }
+            catch (Exception ex) { logger.Debug(ex, "[状态] 刷新 Dock 角标失败"); }
+        }
+
+        internal void ToggleTheme()
+        {
+            MacTheme.ToggleLightDark();
+            this.ApplyAppearance();
+        }
+
+        private void SwitchLightDarkTheme_Click(object sender, RoutedEventArgs e) => this.ToggleTheme();
 
         // ============================================================
         // 用户登录状态
@@ -433,51 +866,11 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             try
             {
                 var session = Gekota.WPF.Services.UserSessionStore.Load();
-                if (session is not null)
-                {
-                    this.UserNavigationItemDefault.Visibility = Visibility.Collapsed;
-                    this.UserNavigationItemLoggedIn.Visibility = Visibility.Visible;
-                    this.UserNavigationItemLoggedIn.Content = session.Username;
-
-                    _ = this.LoadUserAvatarIconAsync(session.AvatarUrl);
-                }
-                else
-                {
-                    this.UserNavigationItemDefault.Visibility = Visibility.Visible;
-                    this.UserNavigationItemLoggedIn.Visibility = Visibility.Collapsed;
-                    this.UserNavigationItemLoggedIn.Content = "用户";
-                    this.UserAvatarIcon.UriSource = null;
-                }
+                this.DockUser.Label = session is null ? "用户" : session.Username;
             }
             catch (Exception ex)
             {
                 logger.Debug(ex, "UpdateUserIcon 出错");
-            }
-        }
-
-        private async Task LoadUserAvatarIconAsync(string url)
-        {
-            if (string.IsNullOrWhiteSpace(url)) return;
-            try
-            {
-                using var client = new System.Net.Http.HttpClient();
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0");
-                client.DefaultRequestHeaders.Referrer = new Uri("https://www.bilibili.com/");
-                var bytes = await client.GetByteArrayAsync(url).ConfigureAwait(false);
-
-                var tempFile = Path.Combine(
-                    Path.GetTempPath(),
-                    "Gekota_avatar_" + Guid.NewGuid().ToString("N") + ".png");
-                File.WriteAllBytes(tempFile, bytes);
-
-                await this.Dispatcher.InvokeAsync(() =>
-                {
-                    this.UserAvatarIcon.UriSource = new Uri(tempFile, UriKind.Absolute);
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "加载导航栏用户头像失败");
             }
         }
 
@@ -492,16 +885,21 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
 
             var room = e?.Room;
             var openTime = e?.Event?.FileOpenTime ?? DateTimeOffset.Now;
+            var closeTime = e?.Event?.FileCloseTime ?? DateTimeOffset.Now;
             // 用录制结束时的标题作为兜底；上传时房间可能已经换了新标题，
             // 直接用 room.Title 会和录播文件名对不上。
             var liveTitle = e?.Event?.Title ?? room?.Title ?? string.Empty;
 
             // 录播结束流水线（严格串行）：转封装 → 弹幕 → 压制 → 自动上传。
             // 压制不能再与转封装并行，否则会抢先占用源文件导致转封装失败。
-            _ = Task.Run(async () =>
+            RecordingSegmentMerger.Enqueue(flvPath, openTime.LocalDateTime, closeTime.LocalDateTime,
+                e?.Event?.Duration ?? 0,
+                room != null ? "room-" + room.RoomConfig.RoomId + "|" + Path.GetDirectoryName(flvPath) : flvPath,
+                room != null ? () => room.Streaming : null,
+                async path =>
             {
-                await this.RemuxToMp4Async(flvPath).ConfigureAwait(false);
-                this.CompressAfterRecordingAsync(flvPath, room, openTime, liveTitle);
+                await this.RemuxToMp4Async(path).ConfigureAwait(false);
+                this.CompressAfterRecordingAsync(path, room, openTime, liveTitle);
             });
         }
 
@@ -625,6 +1023,18 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             }
         }
 
+        private void Room_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (!string.Equals(e.PropertyName, nameof(IRoom.Title), StringComparison.Ordinal)) return;
+            if (sender is not IRoom room) return;
+            // 标题变化会触发 SplitOutput；给旧文件一点关闭时间，然后立刻结束旧标题批次。
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(3000).ConfigureAwait(false);
+                RecordingSegmentMerger.FlushRoom(room.RoomConfig.RoomId);
+            });
+        }
+
         private void Room_ClipEnded(object? sender, Gekota.Core.Event.ClipEventArgs e)
         {
             var flvPath = e?.ClipFilePath;
@@ -697,36 +1107,33 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
 
         // ============================ 自定义外观 ============================
 
-        private void ApplyAppearance()
+        private async void ApplyAppearance()
         {
             try
             {
                 var s = Gekota.WPF.Services.AppearanceManager.Current;
 
-                // 主题色 -> 侧边栏 pane 背景（同时写入本页资源，优先级更高）
-                var brush = Gekota.WPF.Services.AppearanceManager.CreateBrush(s.ThemeColorHex);
-                this.Resources["NavigationViewDefaultPaneBackground"] = brush;
-                this.Resources["NavigationViewExpandedPaneBackground"] = brush;
+                MacTheme.Apply();
 
-                // 背景图 + 白色遮罩
                 if (!string.IsNullOrWhiteSpace(s.BackgroundImagePath) && File.Exists(s.BackgroundImagePath))
                 {
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.UriSource = new Uri(s.BackgroundImagePath, UriKind.Absolute);
-                    bmp.EndInit();
-                    bmp.Freeze();
-
-                    this.AppearanceBackgroundImage.Source = bmp;
-                    this.AppearanceWhiteMask.Opacity = s.MaskOpacity;
-                    this.Background = System.Windows.Media.Brushes.Transparent;
+                    Application.Current.Resources["MacContentBrush"] = System.Windows.Media.Brushes.Transparent;
+                    var image = await BackgroundImageService.GetAsync(s.BackgroundImagePath);
+                    if (image != null) this.AppearanceBackgroundImage.Source = image;
                 }
                 else
                 {
-                    this.AppearanceBackgroundImage.Source = null;
-                    this.SetResourceReference(BackgroundProperty, "SystemControlPageBackgroundAltHighBrush");
+                    // 保留 XAML 里的内置默认背景，不因为设置路径失效而变成空白。
                 }
+
+                this.Background = System.Windows.Media.Brushes.Transparent;
+                if (Window.GetWindow(this) is Window hostWindow)
+                    hostWindow.Background = System.Windows.Media.Brushes.Transparent;
+
+                MacTheme.ApplyWindowMaterial();
+                this.Dispatcher.BeginInvoke(new Action(this.UpdateShellClip),
+                    System.Windows.Threading.DispatcherPriority.Loaded);
+                this.UpdateStatusPill();
             }
             catch (Exception ex)
             {

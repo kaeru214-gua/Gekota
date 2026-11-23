@@ -1,9 +1,12 @@
 using System;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Threading;
 using Gekota.WPF.Controls;
+using Gekota.WPF.Services;
 using Hardcodet.Wpf.TaskbarNotification;
 using ModernWpf.Controls;
 using Serilog;
@@ -33,6 +36,35 @@ namespace Gekota.WPF
             this.InitializeComponent();
 
             SingleInstance.NotificationReceived += this.SingleInstance_NotificationReceived;
+        }
+
+        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+        {
+            base.OnRenderSizeChanged(sizeInfo);
+            WindowEffects.ApplyRoundedRegion(this);
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            MacTheme.ApplyWindowMaterial();
+            WindowEffects.ApplyRoundedRegion(this);
+
+            if (PresentationSource.FromVisual(this) is HwndSource source)
+                source.AddHook(this.WindowProc);
+        }
+
+        protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+        {
+            base.OnDpiChanged(oldDpi, newDpi);
+            WindowEffects.ApplyRoundedRegion(this);
+        }
+
+        protected override void OnContentRendered(EventArgs e)
+        {
+            base.OnContentRendered(e);
+            try { this.Activate(); }
+            catch (Exception) { }
         }
 
         private void SingleInstance_NotificationReceived(object sender, EventArgs e) => this.SuperActivateAction();
@@ -68,6 +100,9 @@ namespace Gekota.WPF
 
         private void Window_StateChanged(object sender, EventArgs e)
         {
+            WindowEffects.ApplyRoundedRegion(this);
+            (this.RootPage as Pages.RootPage)?.SetWindowMaximized(this.WindowState == WindowState.Maximized);
+
             if (this.HideToTray && !this.HideToTrayBlockedByContentDialog && this.WindowState == WindowState.Minimized)
             {
                 this.Hide();
@@ -80,6 +115,151 @@ namespace Gekota.WPF
                 }
             }
         }
+
+        // 无边框 + AllowsTransparency 的窗口最大化时会盖住任务栏，
+        // 通过 WM_GETMINMAXINFO 把最大化尺寸限制在当前显示器的工作区。
+        private IntPtr WindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_GETMINMAXINFO = 0x0024;
+            const int WM_NCHITTEST = 0x0084;
+            const int WM_SIZE = 0x0005;
+            const int WM_SIZING = 0x0214;
+            const int HTLEFT = 10;
+            const int HTRIGHT = 11;
+            const int HTTOP = 12;
+            const int HTTOPLEFT = 13;
+            const int HTTOPRIGHT = 14;
+            const int HTBOTTOM = 15;
+            const int HTBOTTOMLEFT = 16;
+            const int HTBOTTOMRIGHT = 17;
+
+            if (msg == WM_GETMINMAXINFO)
+            {
+                var info = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+                var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+                if (GetMonitorInfo(monitor, ref monitorInfo))
+                {
+                    var work = monitorInfo.rcWork;
+                    var full = monitorInfo.rcMonitor;
+                    info.ptMaxPosition.X = work.Left - full.Left;
+                    info.ptMaxPosition.Y = work.Top - full.Top;
+                    info.ptMaxSize.X = work.Right - work.Left;
+                    info.ptMaxSize.Y = work.Bottom - work.Top;
+                    Marshal.StructureToPtr(info, lParam, true);
+                    handled = true;
+                }
+            }
+            else if (msg == WM_SIZING && this.WindowState == WindowState.Normal)
+            {
+                // 小窗固定 3:2；最大化仍走系统工作区。
+                var rect = Marshal.PtrToStructure<RECT>(lParam);
+                var edge = wParam.ToInt32();
+                var width = rect.Right - rect.Left;
+                var height = rect.Bottom - rect.Top;
+                if (width <= 0 || height <= 0) return IntPtr.Zero;
+
+                if (edge == 3 || edge == 6)
+                {
+                    // 拖上下边：以高度反推宽度
+                    var newWidth = (int)Math.Round(height * 3.0 / 2.0);
+                    rect.Right = rect.Left + newWidth;
+                }
+                else
+                {
+                    // 拖左右边/四角：以宽度反推高度
+                    var newHeight = (int)Math.Round(width * 2.0 / 3.0);
+                    if (edge == 3 || edge == 4 || edge == 5)
+                        rect.Top = rect.Bottom - newHeight;
+                    else
+                        rect.Bottom = rect.Top + newHeight;
+                }
+
+                Marshal.StructureToPtr(rect, lParam, true);
+                handled = true;
+            }
+            else if (msg == WM_NCHITTEST && this.WindowState == WindowState.Normal)
+            {
+                // 去掉 WindowChrome 后自己实现 8px 边缘缩放，避免 WindowChrome
+                // 与分层窗口组合时在圆角外画出黑色方块。
+                long lp = lParam.ToInt64();
+                int screenX = (short)(lp & 0xFFFF);
+                int screenY = (short)((lp >> 16) & 0xFFFF);
+                var p = this.PointFromScreen(new Point(screenX, screenY));
+                const double edge = 8;
+
+                bool left = p.X >= 0 && p.X <= edge;
+                bool right = p.X >= this.ActualWidth - edge && p.X <= this.ActualWidth;
+                bool top = p.Y >= 0 && p.Y <= edge;
+                bool bottom = p.Y >= this.ActualHeight - edge && p.Y <= this.ActualHeight;
+
+                if (left || right || top || bottom)
+                {
+                    handled = true;
+                    if (top && left) return (IntPtr)HTTOPLEFT;
+                    if (top && right) return (IntPtr)HTTOPRIGHT;
+                    if (bottom && left) return (IntPtr)HTBOTTOMLEFT;
+                    if (bottom && right) return (IntPtr)HTBOTTOMRIGHT;
+                    if (left) return (IntPtr)HTLEFT;
+                    if (right) return (IntPtr)HTRIGHT;
+                    if (top) return (IntPtr)HTTOP;
+                    return (IntPtr)HTBOTTOM;
+                }
+            }
+
+            else if (msg == WM_SIZE)
+            {
+                // 窗口尺寸变化后重新设置区域，否则缩小时区域会停留在旧尺寸，圆角消失。
+                this.Dispatcher.BeginInvoke(
+                    new Action(() => WindowEffects.ApplyRoundedRegion(this)),
+                    DispatcherPriority.Background);
+            }
+
+            return IntPtr.Zero;
+        }
+
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
 
         #region Confirm Close Window
 
@@ -98,11 +278,25 @@ namespace Gekota.WPF
             {
                 e.Cancel = true;
 
+                // 已经有对话框（例如首次启动的“选择工作目录”）正在显示时，
+                // 不能再弹关闭确认框，否则 ModernWpf 会抛 "Only a single ContentDialog
+                // can be open at any time"，窗口会卡住。直接关闭即可。
+                if (ContentDialogExtensions.IsAnyDialogOpen)
+                {
+                    Serilog.Log.Information("[退出] 检测到已打开的对话框，跳过关闭确认并退出");
+                    this.CloseConfirmed = true;
+                    _ = this.Dispatcher.BeginInvoke(this.Close, DispatcherPriority.Normal);
+                    return;
+                }
+
                 if (await this.CloseWindowSemaphoreSlim.WaitAsync(0))
                 {
                     try
                     {
-                        if (await new CloseWindowConfirmDialog { Owner = Application.Current.MainWindow }.ShowAndDisableMinimizeToTrayAsync() == ContentDialogResult.Primary)
+                        var dialog = new CloseWindowConfirmDialog { Owner = Application.Current.MainWindow };
+                        this.Topmost = false;
+                        await dialog.ShowAndDisableMinimizeToTrayAsync();
+                        if (dialog.Confirmed)
                         {
                             this.CloseConfirmed = true;
                             _ = this.Dispatcher.BeginInvoke(this.Close, DispatcherPriority.Normal);
@@ -111,7 +305,10 @@ namespace Gekota.WPF
                     }
                     catch (Exception ex)
                     {
-                        Serilog.Log.Warning(ex, "[退出] 关闭确认框失败");
+                        Serilog.Log.Warning(ex, "[退出] 关闭确认框失败，直接退出");
+                        this.CloseConfirmed = true;
+                        _ = this.Dispatcher.BeginInvoke(this.Close, DispatcherPriority.Normal);
+                        return;
                     }
                     finally
                     {

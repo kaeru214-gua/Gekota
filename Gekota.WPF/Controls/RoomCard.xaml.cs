@@ -4,6 +4,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Gekota.Core;
@@ -49,6 +52,49 @@ namespace Gekota.WPF.Controls
         public event EventHandler? DeleteRequested;
 
         public event EventHandler? ShowSettingsRequested;
+
+        public event EventHandler<IRoom>? OpenRequested;
+
+        private void CardRoot_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (IsInteractiveElement(e.OriginalSource as DependencyObject)) return;
+            if (this.DataContext is not IRoom room) return;
+
+            logger.Debug("[卡片] 点击打开直播间 {RoomId}", room.RoomConfig.RoomId);
+            e.Handled = true;
+            this.OpenRequested?.Invoke(this, room);
+        }
+
+        private void CardRoot_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (sender is not Border border) return;
+            if (border.ActualWidth <= 0 || border.ActualHeight <= 0) return;
+
+            // Border.CornerRadius 不会裁剪子元素（封面 Image 仍会画出方角），
+            // 这里用圆角矩形 Clip 强制把整张卡片裁成圆角。
+            border.Clip = new RectangleGeometry(
+                new Rect(0, 0, border.ActualWidth, border.ActualHeight), 21, 21);
+        }
+
+        private static bool IsInteractiveElement(DependencyObject? source)
+        {
+            while (source != null)
+            {
+                if (source is ButtonBase
+                    || source is MenuItem
+                    || source is Menu
+                    || source is TextBoxBase
+                    || source is ScrollBar
+                    || source is Slider)
+                {
+                    return true;
+                }
+
+                source = source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source);
+            }
+
+            return false;
+        }
 
         private void RoomCard_Loaded(object sender, RoutedEventArgs e)
         {

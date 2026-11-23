@@ -21,8 +21,6 @@ namespace Gekota.WPF.Controls
             this.BuildColorSwatches();
             this.ImagePathText.Text = string.IsNullOrWhiteSpace(AppearanceManager.Current.BackgroundImagePath)
                 ? "（未设置）" : System.IO.Path.GetFileName(AppearanceManager.Current.BackgroundImagePath);
-            this.MaskSlider.Value = AppearanceManager.Current.MaskOpacity;
-            this.MaskValueText.Text = (int)Math.Round(AppearanceManager.Current.MaskOpacity * 100) + "%";
             this.loading = false;
         }
 
@@ -81,14 +79,6 @@ namespace Gekota.WPF.Controls
         {
             AppearanceManager.SetBackground(string.Empty);
             this.ImagePathText.Text = "（未设置）";
-        }
-
-        private void MaskSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (this.MaskValueText == null) return;
-            this.MaskValueText.Text = (int)Math.Round(e.NewValue * 100) + "%";
-            if (this.loading) return;
-            AppearanceManager.SetMaskOpacity(e.NewValue);
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => this.Close();

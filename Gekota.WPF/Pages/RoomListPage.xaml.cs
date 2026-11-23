@@ -35,8 +35,15 @@ namespace Gekota.WPF.Pages
             this.DataContextChanged += this.RoomListPage_DataContextChanged;
 
             this.InitializeComponent();
-            this.Loaded += (s, e) => this.ApplyTopBarTheme();
         }
+
+        private void RoomCard_OpenRequested(object? sender, IRoom room) => RootPage.Current?.OpenPlayback(room);
+
+        private void MenuItem_OpenSkin_Click(object sender, RoutedEventArgs e) =>
+            RootPage.Current?.NavigateToPage("SkinPage");
+
+        private void MenuItem_ToggleTheme_Click(object sender, RoutedEventArgs e) =>
+            RootPage.Current?.ToggleTheme();
 
         private void RoomListPage_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -351,37 +358,6 @@ namespace Gekota.WPF.Pages
                         await Task.Delay(500);
                     }
                 });
-            }
-        }
-        // ============================ 自定义外观 ============================
-
-        private void AppearanceButton_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                new Gekota.WPF.Controls.AppearanceDialog
-                {
-                    Owner = Application.Current.MainWindow,
-                }.ShowDialog();
-                this.ApplyTopBarTheme();
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, "[外观] 打开外观面板失败");
-            }
-        }
-
-        /// <summary>把主题色应用到上方文件栏。</summary>
-        private void ApplyTopBarTheme()
-        {
-            try
-            {
-                this.TopMenu.Background = Gekota.WPF.Services.AppearanceManager.CreateBrush(
-                    Gekota.WPF.Services.AppearanceManager.Current.ThemeColorHex);
-            }
-            catch (Exception ex)
-            {
-                logger.Debug(ex, "[外观] 应用文件栏主题色失败");
             }
         }
     }

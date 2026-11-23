@@ -617,7 +617,7 @@ namespace Gekota.Core.Config.V3
 
         public bool NetworkTransportUseSystemProxy => false;
 
-        public AllowedAddressFamily NetworkTransportAllowedAddressFamily => AllowedAddressFamily.Any;
+        public AllowedAddressFamily NetworkTransportAllowedAddressFamily => AllowedAddressFamily.Ipv4;
 
         public string NetworkTransportBindAddress => @"";
 

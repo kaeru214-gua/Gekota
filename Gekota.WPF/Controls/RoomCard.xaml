@@ -21,25 +21,31 @@
                 <SolidColorBrush Color="Red"/>
             </c:BoolToValueConverter.TrueValue>
             <c:BoolToValueConverter.FalseValue>
-                <SolidColorBrush Color="White"/>
+                <SolidColorBrush Color="White" />
             </c:BoolToValueConverter.FalseValue>
         </c:BoolToValueConverter>
     </UserControl.Resources>
 
-    <Border BorderThickness="0"
-            CornerRadius="5"
-            ClipToBounds="True">
+    <Border x:Name="CardRoot"
+            BorderThickness="0"
+            BorderBrush="Transparent"
+            CornerRadius="21"
+            Background="Transparent"
+            ClipToBounds="True"
+            SizeChanged="CardRoot_SizeChanged"
+            Cursor="Hand"
+            MouseLeftButtonUp="CardRoot_MouseLeftButtonUp">
         <Grid>
             <!-- 封面背景图 -->
             <Image x:Name="CoverImage" Stretch="UniformToFill"/>
 
-            <!-- 半透明白色渐变遮罩：上部更实，下部更透，保证文字可读 -->
+            <!-- 只加可读性渐变，不加白色玻璃，封面保持可见 -->
             <Border>
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#33000000" Offset="0"/>
-                        <GradientStop Color="#33000000" Offset="0"/>
-                        <GradientStop Color="#33000000" Offset="0"/>
+                        <GradientStop Color="#4D000000" Offset="0"/>
+                        <GradientStop Color="#1A000000" Offset="0.45"/>
+                        <GradientStop Color="#99000000" Offset="1"/>
                     </LinearGradientBrush>
                 </Border.Background>
             </Border>
@@ -54,12 +60,11 @@
                 <TextBlock VerticalAlignment="Center" Style="{DynamicResource SubtitleTextBlockStyle}"
                            TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontFamily="Microsoft Yahei"
                            Foreground="White"
-                           Text="{Binding Name,Mode=OneWay}" ToolTip="{Binding Name,Mode=OneWay}"
-                           ContextMenu="{StaticResource CopyTextContextMenu}">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                           Text="{Binding Name,Mode=OneWay}" ToolTip="{Binding Name,Mode=OneWay}">
+                    <TextBlock.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.9"/>
+                    </TextBlock.Effect>
+                </TextBlock>
                 <Grid Grid.Row="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -72,30 +77,24 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Row="0" Text="{Binding Title}" ToolTip="{Binding Title}" Foreground="White"
                                Visibility="{Binding RoomConfig.WpfShowTitleAndArea,Converter={StaticResource BooleanToVisibilityCollapsedConverter}}"
-                               TextTrimming="CharacterEllipsis" ContextMenu="{StaticResource CopyTextContextMenu}">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                               TextTrimming="CharacterEllipsis">
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
                     <StackPanel Grid.Row="1" Orientation="Horizontal"
                                 Visibility="{Binding RoomConfig.WpfShowTitleAndArea,Converter={StaticResource BooleanToVisibilityCollapsedConverter}}">
-                        <TextBlock Text="{Binding AreaNameParent}" Foreground="White"
-                                   ContextMenu="{StaticResource CopyTextContextMenu}">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
-                        <TextBlock Text=" · " Foreground="White">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
-                        <TextBlock Text="{Binding AreaNameChild}" Foreground="White"
-                                   ContextMenu="{StaticResource CopyTextContextMenu}">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                        <TextBlock Text="{Binding AreaNameParent}" Foreground="White">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <TextBlock Text=" · " Foreground="White" />
+                        <TextBlock Text="{Binding AreaNameChild}" Foreground="White">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="6" ShadowDepth="0" Opacity="0.9"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
                     </StackPanel>
                     <StackPanel Grid.Row="3" VerticalAlignment="Center" HorizontalAlignment="Stretch" Orientation="Horizontal">
                         <ui:PathIcon Height="10" Margin="0,0,2,0" Style="{Binding DanmakuConnected,Converter={StaticResource BooleanToDanmakuConnectedStyleConverter}}"
@@ -108,19 +107,19 @@
                                      Visibility="{Binding AutoRecordForThisSession,Converter={StaticResource InvertBooleanToVisibilityCollapsedConverter}}"
                                      Foreground="DarkOrange" ToolTip="{l:Loc RoomCard_Status_AutoRecordForThisSessionDisabled_Tooltip}"/>
                         <ui:PathIcon Height="10" Style="{StaticResource PathIconDataUpperCaseIdentifier}" />
-                        <TextBlock Text="{Binding RoomConfig.RoomId, StringFormat=\{0\},Mode=OneWay}" Foreground="White" ContextMenu="{StaticResource CopyTextContextMenu}" Margin="4,0" FontSize="11">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                        <TextBlock Text="{Binding RoomConfig.RoomId, StringFormat=\{0\},Mode=OneWay}" Foreground="White" Margin="4,0" FontSize="11">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.9"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
                         <ui:PathIcon Height="10" Style="{StaticResource PathIconDataLowerCaseIdentifier}" Margin="3,0"
                                      Visibility="{Binding ShortId,Converter={StaticResource ShortRoomIdToVisibilityConverter}}"/>
-                        <TextBlock Text="{Binding ShortId, StringFormat=\{0\},Mode=OneWay}" Foreground="White" ContextMenu="{StaticResource CopyTextContextMenu}" FontSize="11"
+                        <TextBlock Text="{Binding ShortId, StringFormat=\{0\},Mode=OneWay}" Foreground="White" FontSize="11"
                                    Visibility="{Binding ShortId,Converter={StaticResource ShortRoomIdToVisibilityConverter}}">
-                                <TextBlock.Effect>
-                                    <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.9"/>
-                                </TextBlock.Effect>
-                            </TextBlock>
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.9"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
                     </StackPanel>
                     <Menu Grid.Column="1" Grid.RowSpan="3" VerticalAlignment="Center" HorizontalAlignment="Right">
                         <MenuItem ToolTip="{l:Loc RoomCard_Menu_Tooltip}">
@@ -182,7 +181,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border CornerRadius="5" Background="#99000000" Padding="6,2"
+                    <Border CornerRadius="7" Background="#99000000" Padding="6,2"
                         VerticalAlignment="Center" HorizontalAlignment="Center">
                     <Border.Visibility>
                         <MultiBinding Converter="{StaticResource MultiBoolToVisibilityCollapsedConverter}" Mode="OneWay">
@@ -196,7 +195,7 @@
                     </StackPanel>
                 </Border>
 
-                    <Border Name="RecordingIcon" CornerRadius="5" Background="#99000000" Padding="6,2"
+                    <Border Name="RecordingIcon" CornerRadius="7" Background="#99000000" Padding="6,2"
                         VerticalAlignment="Center" HorizontalAlignment="Center"
                         Visibility="{Binding Recording, Converter={StaticResource BooleanToVisibilityCollapsedConverter},Mode=OneWay}">
                     <StackPanel Orientation="Horizontal">

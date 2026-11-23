@@ -141,6 +141,7 @@ namespace Gekota.Core
         public event EventHandler<RecordingStatsEventArgs>? RecordingStats;
         public event EventHandler<ClipEventArgs>? ClipStarted;
         public event EventHandler<ClipEventArgs>? ClipEnded;
+        public event EventHandler<RoomDanmakuEventArgs>? DanmakuReceived;
         public event PropertyChangedEventHandler? PropertyChanged;
 
         public void SplitOutput()
@@ -375,6 +376,13 @@ namespace Gekota.Core
             {
                 if (this.disposedValue)
                     return;
+
+                if (ScheduleSkipPolicy.IsSkipped(this.Name, DateTime.Now))
+                {
+                    this.AutoRecordForThisSession = false;
+                    this.logger.Information("预约日程已跳过，本次不录制：{RoomName}", this.Name);
+                    return;
+                }
 
                 if (!this.Streaming)
                     return;
@@ -773,6 +781,20 @@ namespace Gekota.Core
                     break;
                 default:
                     break;
+            }
+
+            if (d.MsgType == Api.Danmaku.DanmakuMsgType.Comment &&
+                !string.IsNullOrWhiteSpace(d.CommentText))
+            {
+                try
+                {
+                    this.DanmakuReceived?.Invoke(this, new RoomDanmakuEventArgs(
+                        d.CommentText!, d.UserName ?? "", d.UserID));
+                }
+                catch (Exception ex)
+                {
+                    this.logger.Debug(ex, "分发实时弹幕事件失败");
+                }
             }
 
             _ = Task.Run(async () => await this.basicDanmakuWriter.WriteAsync(d));

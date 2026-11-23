@@ -11,24 +11,21 @@
         xmlns:local="clr-namespace:Gekota.WPF"
         xmlns:pages="clr-namespace:Gekota.WPF.Pages"
         mc:Ignorable="d"
-        Background="{DynamicResource SystemControlPageBackgroundAltHighBrush}"
-        Foreground="{DynamicResource SystemControlPageTextBaseHighBrush}"
+        Title="Gekota"
+        Background="Transparent"
+        Foreground="{DynamicResource MacTextPrimaryBrush}"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        AllowsTransparency="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        FontFamily="Segoe UI"
         ui:ThemeManager.IsThemeAware="True"
         ui:ThemeManager.RequestedTheme="Default"
-        ui:WindowHelper.UseModernWindowStyle="True"
-        ui:TitleBar.IsBackEnabled="False"
-        ui:TitleBar.IsBackButtonVisible="False"
-        ui:TitleBar.IsIconVisible="True"
-        Width="1000" Height="650" MinHeight="400" MinWidth="340"
+        Width="1152" Height="768"
+        MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
-        FontFamily="Microsoft YaHei"
-        Closing="Window_Closing" StateChanged="Window_StateChanged" 
-        >
-    <Window.Title>
-        <MultiBinding Converter="{l:StringFormatConverter}">
-            <l:BLoc Key="Window_Title"/>
-            <Binding Path="SoftwareVersion" RelativeSource="{RelativeSource Mode=Self}" />
-        </MultiBinding>
-    </Window.Title>
-    <pages:RootPage x:Name="RootPage"/>
+        Closing="Window_Closing"
+        StateChanged="Window_StateChanged">
+    <pages:RootPage x:Name="RootPage" />
 </Window>

@@ -41,6 +41,9 @@ namespace Gekota.Core
         event EventHandler<ClipEventArgs>? ClipStarted;
         event EventHandler<ClipEventArgs>? ClipEnded;
 
+        /// <summary>实时弹幕（仅用于实时播放页展示；录制仍走原来的 writer）。</summary>
+        event EventHandler<RoomDanmakuEventArgs>? DanmakuReceived;
+
         void StartRecord();
         void StopRecord();
         void SplitOutput();

@@ -7,7 +7,7 @@ namespace Gekota.WPF.Services
     public static class AnnouncementContent
     {
         /// <summary>本次更新对应的版本号。</summary>
-        public const string Version = "1.1.1";
+        public const string Version = "1.2.0";
 
         /// <summary>更新主题（卡片标题后半段）。</summary>
         public const string Headline = "修复";

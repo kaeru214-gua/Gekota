@@ -5,7 +5,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ui="http://schemas.modernwpf.com/2019"
-    xmlns:m="clr-namespace:Gekota.WPF.Models"
     xmlns:l="https://github.com/XAMLMarkupExtensions/WPFLocalizationExtension"
     l:LocalizeDictionary.DesignCulture=""
     l:ResxLocalizationProvider.DefaultAssembly="Gekota.WPF"
@@ -14,197 +13,402 @@
     xmlns:wpf="clr-namespace:Gekota.WPF"
     xmlns:controls="clr-namespace:Gekota.WPF.Controls"
     xmlns:models="clr-namespace:Gekota.WPF.Models"
-    mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+    mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
     d:DataContext="{d:DesignInstance Type=models:RootModel,IsDesignTimeCreatable=True}"
-    Background="{DynamicResource SystemControlPageBackgroundAltHighBrush}">
+    Background="Transparent">
+
     <UserControl.Resources>
         <Style x:Key="CascadeDataContextFrame" TargetType="{x:Type ui:Frame}">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ui:Frame}">
-                        <Border
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            Background="{TemplateBinding Background}"
-                            ClipToBounds="True"
-                            Padding="{TemplateBinding Padding}">
+                        <Border Background="{TemplateBinding Background}"
+                                ClipToBounds="True">
                             <Grid>
-                                <ContentPresenter
-                                    x:Name="FirstContentPresenter"
-                                    Content="{x:Null}"
-                                    DataContext="{TemplateBinding DataContext}"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                                <ContentPresenter
-                                    x:Name="SecondContentPresenter"
-                                    Content="{x:Null}"
-                                    DataContext="{TemplateBinding DataContext}"
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                <ContentPresenter x:Name="FirstContentPresenter"
+                                                  Content="{x:Null}"
+                                                  DataContext="{TemplateBinding DataContext}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                <ContentPresenter x:Name="SecondContentPresenter"
+                                                  Content="{x:Null}"
+                                                  DataContext="{TemplateBinding DataContext}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                             </Grid>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- macOS 红灯 / 黄灯 / 绿灯 -->
+        <Style x:Key="TrafficLightButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Ellipse x:Name="Dot"
+                                     Fill="{TemplateBinding Background}"
+                                     Stroke="#20000000"
+                                     StrokeThickness="0.5" />
+                            <Viewbox x:Name="GlyphHost"
+                                     Width="9" Height="9"
+                                     Opacity="0"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center">
+                                <ContentPresenter />
+                            </Viewbox>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="GlyphHost" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Dot" Property="Opacity" Value="0.75" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TitleActionButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="#33000000" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="#33FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#4D000000" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.72" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DockSeparatorStyle" TargetType="Border">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Margin" Value="0,7" />
+            <Setter Property="Background" Value="{DynamicResource MacSeparatorBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
     </UserControl.Resources>
-    <Grid x:Name="RootGrid">
-        <!-- 自定义外观：背景图 + 白色遮罩（位于内容之下） -->
-        <Image x:Name="AppearanceBackgroundImage" Stretch="UniformToFill" Panel.ZIndex="-10"/>
-        <Border x:Name="AppearanceWhiteMask" Background="White" Panel.ZIndex="-9"/>
 
-        <controls:TaskbarIconControl DataContext="{Binding}" d:IsHidden="True"/>
-        <ui:NavigationView Background="Transparent"
-                           IsBackEnabled="False" IsBackButtonVisible="Collapsed"
-                           IsSettingsVisible="False" ExpandedModeThresholdWidth="1115"
-                           IsPaneOpen="False" OpenPaneLength="200"
-                           SelectionChanged="NavigationView_SelectionChanged">
-            <ui:NavigationView.PaneCustomContent>
-                <StackPanel>
-                    <Menu>
-                        <MenuItem>
-                            <MenuItem.Header>
-                                <ui:PathIcon Width="16" Height="16" Style="{StaticResource PathIconDataTranslate}"/>
-                            </MenuItem.Header>
-                            <MenuItem Header="简体中文" CommandParameter="" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}"/>
-                            <MenuItem Header="繁體中文" CommandParameter="zh-Hant" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}"/>
-                            <MenuItem Header="日本語" CommandParameter="ja" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}"/>
-                            <MenuItem Header="English" CommandParameter="en" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}"/>
-                            <Separator/>
-                            <MenuItem Header="参与翻译" Command="{x:Static m:Commands.OpenLink}" CommandParameter="https://rec.danmuji.org/link/translate/">
-                                <MenuItem.Icon>
-                                    <ui:PathIcon Style="{StaticResource PathIconDataOpenInNew}"/>
-                                </MenuItem.Icon>
-                            </MenuItem>
-                        </MenuItem>
-                    </Menu>
-                    <Menu>
-                        <MenuItem Click="SwitchLightDarkTheme_Click">
-                            <MenuItem.Header>
-                                <ui:PathIcon Width="16" Height="16" Style="{StaticResource PathIconDataThemeLightDark}"/>
-                            </MenuItem.Header>
-                        </MenuItem>
-                    </Menu>
-                </StackPanel>
-            </ui:NavigationView.PaneCustomContent>
-            <ui:NavigationView.PaneFooter>
-                <Grid Width="40" Height="40" x:Name="DebugBuildIcon" Visibility="Collapsed" HorizontalAlignment="Left">
-                    <ui:PathIcon Width="24" Height="24" ToolTip="Debug Build 测试版"
-                                 Style="{StaticResource PathIconDataBugOutline}"/>
-                </Grid>
-            </ui:NavigationView.PaneFooter>
-            <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem x:Name="AnnouncementPageNavigationViewItem" Content="{l:Loc RootPage_NavigationViewItem_AnnouncementPage}" Tag="AnnouncementPage">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataBullhornOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="{l:Loc RootPage_NavigationViewItem_RoomListPage}" Tag="RoomListPage" IsEnabled="False" x:Name="RoomListPageNavigationViewItem" IsSelected="True">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataHomeOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="实时播放" Tag="PlaybackPage">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataPlayCircleOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
+    <Grid x:Name="RootGrid" Background="Transparent">
+        <!-- 不透明底色：背景图模糊后边缘不会透出桌面 -->
+        <Border Background="{DynamicResource MacWindowBaseBrush}" Panel.ZIndex="-21" />
+        <!-- 用户自定义背景图（位于窗口材质之上、内容之下） -->
+        <Image x:Name="AppearanceBackgroundImage"
+               Source="pack://siteoforigin:,,,/default_background.jpg"
+               Stretch="UniformToFill"
+               Panel.ZIndex="-20">
+            <Image.Effect>
+                <BlurEffect Radius="12" KernelType="Gaussian" RenderingBias="Performance" />
+            </Image.Effect>
+        </Image>
 
+        <controls:TaskbarIconControl DataContext="{Binding}" d:IsHidden="True" />
 
-                <!-- 工具箱 -->
-                <ui:NavigationViewItem Content="工具箱" SelectsOnInvoked="False">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataToolboxOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                    <ui:NavigationViewItem.MenuItems>
-                        <ui:NavigationViewItem Content="录播修复" Tag="ToolboxAutoFixPage">
-                            <ui:NavigationViewItem.Icon>
-                                <ui:PathIcon Style="{StaticResource PathIconDataAutoFix}"/>
-                            </ui:NavigationViewItem.Icon>
-                        </ui:NavigationViewItem>
-                        <ui:NavigationViewItem Content="弹幕合并" Tag="ToolboxDanmakuMergerPage">
-                            <ui:NavigationViewItem.Icon>
-                                <ui:PathIcon Style="{StaticResource PathIconDataMerge}"/>
-                            </ui:NavigationViewItem.Icon>
-                        </ui:NavigationViewItem>
-                        <ui:NavigationViewItem Content="弹幕转换" Tag="ToolboxDanmakuConvertPage">
-                            <ui:NavigationViewItem.Icon>
-                                <ui:PathIcon Style="{StaticResource PathIconDataMerge}"/>
-                            </ui:NavigationViewItem.Icon>
-                        </ui:NavigationViewItem>
-                        <ui:NavigationViewItem Content="视频压制" Tag="ToolboxCompressPage">
-                            <ui:NavigationViewItem.Icon>
-                                <ui:PathIcon Style="{StaticResource PathIconDataMerge}"/>
-                            </ui:NavigationViewItem.Icon>
-                        </ui:NavigationViewItem>
-                        <ui:NavigationViewItem Content="转封装" Tag="ToolboxRemuxPage">
-                            <ui:NavigationViewItem.Icon>
-                                <ui:PathIcon Style="{StaticResource PathIconDataAlphaRCircleOutline}"/>
-                            </ui:NavigationViewItem.Icon>
-                        </ui:NavigationViewItem>
-                    </ui:NavigationViewItem.MenuItems>
-                </ui:NavigationViewItem>
-            </ui:NavigationView.MenuItems>
-            <ui:NavigationView.FooterMenuItems>
-
-                <!-- 用户（未登录） -->
-                <ui:NavigationViewItem x:Name="UserNavigationItemDefault" Content="用户" Tag="UserPage">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataAccountOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-
-                <!-- 用户（已登录） -->
-                <ui:NavigationViewItem x:Name="UserNavigationItemLoggedIn" Content="用户" Tag="UserPage" Visibility="Collapsed"
-                                       Padding="0" MinHeight="48">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:BitmapIcon x:Name="UserAvatarIcon" Width="44" Height="44"
-                                       Margin="-4,0,-4,0"
-                                       ShowAsMonochrome="False"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-
-                <!-- 设置 -->
-                <ui:NavigationViewItem Content="{l:Loc RootPage_NavigationViewItem_SettingsPage}" Tag="SettingsPage"
-                                       IsEnabled="False"
-                                       x:Name="SettingsPageNavigationViewItem">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataCogOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-
-                <ui:NavigationViewItem Content="{l:Loc RootPage_NavigationViewItem_LogPage}" Tag="LogPage">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataPaperRollOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-                <ui:NavigationViewItem Content="{l:Loc About_Title}" Tag="AboutPage">
-                    <ui:NavigationViewItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataInformationOutline}"/>
-                    </ui:NavigationViewItem.Icon>
-                </ui:NavigationViewItem>
-            </ui:NavigationView.FooterMenuItems>
+        <Border x:Name="ShellClip"
+                Background="Transparent"
+                BorderThickness="0"
+                BorderBrush="Transparent"
+                CornerRadius="21"
+                SizeChanged="ShellClip_SizeChanged"
+                ClipToBounds="True">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="52" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <ui:Frame x:Name="MainFrame" Grid.Row="0" Style="{DynamicResource CascadeDataContextFrame}" Navigated="MainFrame_Navigated" />
-                <!-- 全局压制进度条（除 视频压制/公告/关于/日志 外显示） -->
-                <Border x:Name="GlobalCompressBar" Grid.Row="1" Padding="10,5" Visibility="Collapsed"
-                        Background="#33FFFFFF" BorderBrush="#44FFFFFF" BorderThickness="0,1,0,0">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="GcbCount" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <ProgressBar x:Name="GcbProgress" Grid.Column="1" Height="8" Minimum="0" Maximum="100" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="GcbTime" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                    </Grid>
-                </Border>
+
+                <!-- ============ 窗口标题栏（只是窗口 chrome，不是功能栏） ============ -->
+                <Grid x:Name="TitleBar"
+                      Background="{DynamicResource MacChromeBrush}"
+                      MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <!-- 左上角：图标 + 应用名 -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Margin="20,0,0,0">
+                        <Image Source="pack://application:,,,/Gekota.WPF;component/ico.ico"
+                               Width="20" Height="20"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               IsHitTestVisible="False" />
+                        <TextBlock Text="Gekota"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource MacTextPrimaryBrush}"
+                                   IsHitTestVisible="False" />
+                    </StackPanel>
+
+                    <!-- 右上角：绿=最小化，黄=最大化，红=关闭 -->
+                    <StackPanel x:Name="WindowControls"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Margin="0,0,20,0">
+                        <Button x:Name="MinimizeWindowButton"
+                                Style="{StaticResource TrafficLightButtonStyle}"
+                                Background="#28C840"
+                                ToolTip="最小化"
+                                Click="MinimizeWindowButton_Click">
+                            <Path Data="M 0,4 L 8,4"
+                                  Stroke="#7A000000"
+                                  StrokeThickness="1.6"
+                                  StrokeStartLineCap="Round" />
+                        </Button>
+                        <Button x:Name="MaximizeWindowButton"
+                                Style="{StaticResource TrafficLightButtonStyle}"
+                                Background="#FEBC2E"
+                                ToolTip="最大化"
+                                Click="MaximizeWindowButton_Click">
+                            <Path Data="M 0,4 L 8,4 M 4,0 L 4,8"
+                                  Stroke="#7A000000"
+                                  StrokeThickness="1.6"
+                                  StrokeStartLineCap="Round" />
+                        </Button>
+                        <Button x:Name="CloseWindowButton"
+                                Style="{StaticResource TrafficLightButtonStyle}"
+                                Background="#FF5F57"
+                                ToolTip="关闭"
+                                Click="CloseWindowButton_Click">
+                            <Path Data="M 0,0 L 8,8 M 8,0 L 0,8"
+                                  Stroke="#7A000000"
+                                  StrokeThickness="1.6"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round" />
+                        </Button>
+
+
+                    </StackPanel>
+                </Grid>
+
+                <!-- ============ Dock + 内容 ============ -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="DockColumn" Width="136" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Dock：左侧竖向毛玻璃栏 -->
+                    <Border x:Name="Dock"
+                            Width="88"
+                            Margin="24"
+                            Panel.ZIndex="10"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Stretch"
+                            Background="{DynamicResource MacDockBrush}"
+                            BorderBrush="Transparent"
+                            BorderThickness="0"
+                            CornerRadius="21">
+                        <Border.Effect>
+                            <DropShadowEffect x:Name="DockShadow"
+                                              BlurRadius="30"
+                                              Direction="270"
+                                              ShadowDepth="6"
+                                              Opacity="0.24"
+                                              Color="#000000" />
+                        </Border.Effect>
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="主页" Click="DockMenuHome_Click" />
+                                <MenuItem Header="主题设置…" Click="DockMenuSkin_Click" />
+                                <MenuItem Header="设置…" Click="DockMenuSettings_Click" />
+                                <Separator />
+                                <MenuItem Header="切换浅色 / 深色" Click="DockMenuTheme_Click" />
+                                <MenuItem Header="语言">
+                                    <MenuItem Header="简体中文" CommandParameter="" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                                    <MenuItem Header="繁體中文" CommandParameter="zh-Hant" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                                    <MenuItem Header="日本語" CommandParameter="ja" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                                    <MenuItem Header="English" CommandParameter="en" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                                </MenuItem>
+                                <Separator />
+                                <MenuItem Header="退出 Gekota" Click="DockMenuQuit_Click" />
+                            </ContextMenu>
+                        </Border.ContextMenu>
+                        <Grid>
+                        <UniformGrid Rows="7" Columns="1" Margin="0,8,0,8">
+                            <controls:DockIcon x:Name="DockHome"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="主页"
+                                               Tag="RoomListPage"
+                                               IsEnabled="False"
+                                               IconStyle="{StaticResource PathIconDataHomeOutline}"
+                                               Activated="DockIcon_Activated" />
+                            <controls:DockIcon x:Name="DockPlayback"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="实时播放"
+                                               Tag="PlaybackPage"
+                                               IsEnabled="False"
+                                               IconStyle="{StaticResource PathIconDataPlayCircleOutline}"
+                                               Activated="DockIcon_Activated" />
+                            <controls:DockIcon x:Name="DockSchedule"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="日程表"
+                                               Tag="SchedulePage"
+                                               IconStyle="{StaticResource PathIconDataCalendar}"
+                                               Activated="DockIcon_Activated" />
+                            <controls:DockIcon x:Name="DockDynamics"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="动态"
+                                               Tag="DynamicsPage"
+                                               IconStyle="{StaticResource PathIconDataNewspaper}"
+                                               Activated="DockIcon_Activated" />
+                            <controls:DockIcon x:Name="DockToolbox"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="工具箱"
+                                               Tag="ToolboxHomePage"
+                                               IconStyle="{StaticResource PathIconDataToolboxOutline}"
+                                               Activated="DockIcon_Activated" />
+                            <controls:DockIcon x:Name="DockUser"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="用户"
+                                               Tag="UserPage"
+                                               IconStyle="{StaticResource PathIconDataAccountOutline}"
+                                               Activated="DockIcon_Activated" />
+                            <controls:DockIcon x:Name="DockSettings"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Label="设置"
+                                               Tag="SettingsPage"
+                                               IsEnabled="False"
+                                               IconStyle="{StaticResource PathIconDataCogOutline}"
+                                               Activated="DockIcon_Activated" />
+                        </UniformGrid>
+                        </Grid>
+                    </Border>
+
+                    <!-- 内容面板 -->
+                    <Border x:Name="ContentSheet"
+                            Grid.Column="1"
+                            Margin="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            CornerRadius="0"
+                            ClipToBounds="True">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- 工具箱子页面顶部的 macOS 面包屑 -->
+                            <Border x:Name="ToolPageHeader"
+                                    Grid.Row="0"
+                                    Margin="24,13,24,0"
+                                    Padding="0,0,0,11"
+                                    Visibility="Collapsed"
+                                    BorderBrush="{DynamicResource MacSeparatorBrush}"
+                                    BorderThickness="0,0,0,1">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource MacQuietButtonStyle}"
+                                            Height="28"
+                                            Padding="7,2"
+                                            Click="ToolPageBack_Click"
+                                            ToolTip="返回工具箱">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Width="5" Height="9"
+                                                  VerticalAlignment="Center"
+                                                  Stretch="Fill"
+                                                  Fill="{DynamicResource MacTextSecondaryBrush}"
+                                                  Data="M 5,0 L 0,4.5 L 5,9 Z" />
+                                            <TextBlock Text="工具箱"
+                                                       Margin="6,0,0,0"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource MacTextSecondaryBrush}" />
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="/"
+                                               Margin="4,0"
+                                               VerticalAlignment="Center"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource MacTextTertiaryBrush}" />
+                                    <TextBlock x:Name="ToolPageTitleText"
+                                               VerticalAlignment="Center"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource MacTextPrimaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <ui:Frame x:Name="MainFrame"
+                                      Grid.Row="1"
+                                      Background="Transparent"
+                                      Style="{DynamicResource CascadeDataContextFrame}"
+                                      Navigated="MainFrame_Navigated" />
+
+                            <!-- 全局压制进度 -->
+                            <Border x:Name="GlobalCompressBar"
+                                    Grid.Row="2"
+                                    Margin="24,0,24,24"
+                                    Padding="12,7"
+                                    Visibility="Collapsed"
+                                    Background="{DynamicResource MacCardBrush}"
+                                    BorderBrush="{DynamicResource MacBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="11">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="GcbCount"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,0"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource MacTextSecondaryBrush}" />
+                                    <ProgressBar x:Name="GcbProgress"
+                                                 Grid.Column="1"
+                                                 Height="5"
+                                                 Style="{StaticResource MacProgressBarStyle}"
+                                                 Minimum="0"
+                                                 Maximum="100"
+                                                 VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GcbTime"
+                                               Grid.Column="2"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource MacTextSecondaryBrush}" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
             </Grid>
-        </ui:NavigationView>
+        </Border>
     </Grid>
 </UserControl>

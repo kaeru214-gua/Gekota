@@ -11,22 +11,22 @@ namespace Gekota.WPF.Services
     /// <summary>自定义外观设置。</summary>
     public sealed class AppearanceSettings
     {
-        /// <summary>默认主题色（贝拉Kira）。</summary>
-        public const string DefaultThemeColorHex = "#DB7D74";
+        /// <summary>默认主题色：白色（macOS Dock 默认白底黑色图标）。</summary>
+        public const string DefaultThemeColorHex = "#FFFFFF";
 
         /// <summary>
-        /// 默认背景图的原始位置（首次启动时复制到程序目录）。
-        /// 留空 = 不自动复制；需要默认背景时，把图片命名为 default_background.jpg 放到程序目录即可。
+        /// 默认背景图的原始位置（相对于程序目录；首次启动时复制到根目录）。
         /// </summary>
-        public const string DefaultBackgroundSourcePath = "";
+        public const string DefaultBackgroundSourcePath = @"Assets\default_background.jpg";
 
         public string ThemeColorHex { get; set; } = DefaultThemeColorHex;
         public string BackgroundImagePath { get; set; } = string.Empty;
-        public double MaskOpacity { get; set; } = 0.25;   // 0.25 - 1.0
+        public bool UseAcrylic { get; set; } = true;      // 窗口亚克力材质
 
-        /// <summary>11 个预设主题色（参考配色图）。</summary>
+        /// <summary>12 个预设主题色：白色（默认） + 11 个参考配色。</summary>
         public static readonly (string Name, string Hex, string Rgb)[] Presets = new[]
         {
+            ("默认（白色）", "#FFFFFF", "R:255 G:255 B:255"),
             ("A-SOUL团体", "#FC966E", "R:252 G:150 B:110"),
             ("贝拉Kira",   "#DB7D74", "R:219 G:125 B:116"),
             ("乃琳Queen",  "#576690", "R:87 G:104 B:144"),
@@ -62,16 +62,23 @@ namespace Gekota.WPF.Services
         {
             try
             {
-                if (File.Exists(DefaultBackgroundPath)) return DefaultBackgroundPath;
-
                 var src = AppearanceSettings.DefaultBackgroundSourcePath;
+                if (!string.IsNullOrWhiteSpace(src) && !Path.IsPathRooted(src))
+                    src = Path.Combine(AppContext.BaseDirectory, src);
+
                 if (!string.IsNullOrWhiteSpace(src) && File.Exists(src))
                 {
-                    File.Copy(src, DefaultBackgroundPath, overwrite: true);
-                    logger.Information("[外观] 已复制默认背景图 -> {Path}", DefaultBackgroundPath);
+                    var needsCopy = !File.Exists(DefaultBackgroundPath) ||
+                                    File.GetLastWriteTimeUtc(src) > File.GetLastWriteTimeUtc(DefaultBackgroundPath);
+                    if (needsCopy)
+                    {
+                        File.Copy(src, DefaultBackgroundPath, overwrite: true);
+                        logger.Information("[外观] 已复制默认背景图 -> {Path}", DefaultBackgroundPath);
+                    }
                     return DefaultBackgroundPath;
                 }
 
+                if (File.Exists(DefaultBackgroundPath)) return DefaultBackgroundPath;
                 if (!string.IsNullOrWhiteSpace(src))
                     logger.Warning("[外观] 默认背景图源文件不存在: {Src}", src);
             }
@@ -90,10 +97,11 @@ namespace Gekota.WPF.Services
             catch (Exception ex) { logger.Warning(ex, "[外观] 读取设置失败"); }
             o ??= new AppearanceSettings();
 
-            // 背景图为空或仍指向"原始路径" -> 换成程序目录里的副本
+            // 背景图为空、路径失效或仍指向"原始路径" -> 使用程序目录里的默认背景。
             var copied = EnsureDefaultBackground();
             if (!string.IsNullOrWhiteSpace(copied) &&
                 (string.IsNullOrWhiteSpace(o.BackgroundImagePath) ||
+                 !File.Exists(o.BackgroundImagePath) ||
                  string.Equals(o.BackgroundImagePath, AppearanceSettings.DefaultBackgroundSourcePath,
                      StringComparison.OrdinalIgnoreCase)))
             {
@@ -127,20 +135,23 @@ namespace Gekota.WPF.Services
             catch { return new SolidColorBrush(Colors.Orange); }
         }
 
-        /// <summary>把主题色应用到侧边栏（ModernWpf NavigationView 的 pane 背景）并通知刷新。</summary>
+        /// <summary>把主题色应用到 Dock / 强调色 / 窗口材质并通知刷新。</summary>
         public static void Apply()
         {
             try
             {
+                var hex = Current.ThemeColorHex;
+                var brush = CreateBrush(hex);
                 var app = Application.Current;
                 if (app != null)
                 {
-                    var brush = CreateBrush(Current.ThemeColorHex);
                     app.Resources["NavigationViewDefaultPaneBackground"] = brush;
                     app.Resources["NavigationViewExpandedPaneBackground"] = brush;
                 }
             }
             catch (Exception ex) { logger.Warning(ex, "[外观] 应用主题色失败"); }
+
+            MacTheme.Apply();
 
             try { Changed?.Invoke(null, EventArgs.Empty); }
             catch (Exception ex) { logger.Warning(ex, "[外观] 通知刷新失败"); }
@@ -148,16 +159,16 @@ namespace Gekota.WPF.Services
 
         public static void SetThemeColor(string hex) { Current.ThemeColorHex = hex; Save(); Apply(); }
 
-        public static void SetBackground(string path)
+        public static void SetUseAcrylic(bool enabled)
         {
-            Current.BackgroundImagePath = path;
+            Current.UseAcrylic = enabled;
             Save();
             Apply();
         }
 
-        public static void SetMaskOpacity(double v)
+        public static void SetBackground(string path)
         {
-            Current.MaskOpacity = Math.Max(0.25, Math.Min(1.0, v));
+            Current.BackgroundImagePath = path;
             Save();
             Apply();
         }

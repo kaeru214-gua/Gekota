@@ -19,9 +19,10 @@
                 <!-- Other merged dictionaries here -->
                 <ResourceDictionary Source="Resources/IconResources.xaml" />
                 <ResourceDictionary Source="Resources/ConverterResources.xaml" />
+                <ResourceDictionary Source="Resources/MacTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!-- Other app resources here -->
-            <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft YaHei</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">Segoe UI</FontFamily>
             <ContextMenu x:Key="CopyTextContextMenu" DataContext="{Binding RelativeSource={RelativeSource Mode=Self},Path=PlacementTarget}"
                      l:ResxLocalizationProvider.DefaultDictionary="Strings">
                 <MenuItem Header="{l:Loc Global_Copy}" Command="{x:Static m:Commands.Copy}" CommandParameter="{Binding Text}"/>

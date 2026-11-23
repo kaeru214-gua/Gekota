@@ -56,6 +56,7 @@ namespace Gekota.Core.Recording
 
         private DateTimeOffset ioStatsLastTrigger;
         private TimeSpan durationSinceNoDataReceived;
+        private bool useAddressFamilyFallback;
 
         protected RecordTaskBase(IRoom room, ILogger logger, IApiClient apiClient, UserScriptRunner userScriptRunner)
         {
@@ -547,7 +548,9 @@ namespace Gekota.Core.Recording
 
             while (true)
             {
-                var allowedAddressFamily = this.room.RoomConfig.NetworkTransportAllowedAddressFamily;
+                var allowedAddressFamily = this.useAddressFamilyFallback
+                    ? AllowedAddressFamily.Any
+                    : this.room.RoomConfig.NetworkTransportAllowedAddressFamily;
                 HttpRequestMessage request;
                 Uri originalUri;
 
@@ -606,7 +609,13 @@ namespace Gekota.Core.Recording
                         _ => false
                     }).ToArray();
 
-                    var selected = filtered[this.random.Next(filtered.Length)];
+                    var selected = filtered.Length > 0 ? filtered[this.random.Next(filtered.Length)] : null;
+                    if (selected is null && allowedAddressFamily == AllowedAddressFamily.Ipv4)
+                    {
+                        this.useAddressFamilyFallback = true;
+                        this.logger.Warning("IPv4 没有可用地址，自动切换为 Any 重试");
+                        continue;
+                    }
 
                     this.logger.Debug("指定直播服务器地址 {DnsHost}: {SelectedIp}, Allowed: {AllowedAddressFamily}, {IPAddresses}", originalUri.DnsSafeHost, selected, allowedAddressFamily, ips);
 
@@ -631,11 +640,21 @@ namespace Gekota.Core.Recording
 
             sendRequest:
 
-                var resp = await client.SendAsync(request,
-                     HttpCompletionOption.ResponseHeadersRead,
-                     new CancellationTokenSource(timeout).Token)
-                     .ConfigureAwait(false);
-
+                HttpResponseMessage resp;
+                try
+                {
+                    resp = await client.SendAsync(request,
+                         HttpCompletionOption.ResponseHeadersRead,
+                         new CancellationTokenSource(timeout).Token)
+                         .ConfigureAwait(false);
+                }
+                catch (Exception ex) when (allowedAddressFamily == AllowedAddressFamily.Ipv4)
+                {
+                    this.useAddressFamilyFallback = true;
+                    request.Dispose();
+                    this.logger.Warning(ex, "IPv4 连接直播流失败，自动切换为 Any 重试");
+                    continue;
+                }
                 switch (resp.StatusCode)
                 {
                     case HttpStatusCode.OK:

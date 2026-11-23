@@ -12,7 +12,8 @@
     xmlns:local="clr-namespace:Gekota.WPF.Pages"
     mc:Ignorable="d"
     d:DesignHeight="600" d:DesignWidth="900"
-    Title="UserPage">
+    Title="UserPage"
+>
     <Grid Margin="20">
 
         <!-- ==================== 未登录 ==================== -->

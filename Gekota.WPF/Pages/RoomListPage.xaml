@@ -17,18 +17,16 @@
     mc:Ignorable="d" 
     x:Name="TheRoomListPage"
     d:DesignHeight="1000" d:DesignWidth="960"
+
     DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=local:RootPage},Path=DataContext.Recorder,Mode=OneWay}"
     >
     <ui:Page.Resources>
         <DataTemplate x:Key="NormalRoomCardTemplate">
-            <ui:ThemeShadowChrome IsShadowEnabled="True" Depth="10">
-                <c:RoomCard DeleteRequested="RoomCard_DeleteRequested" ShowSettingsRequested="RoomCard_ShowSettingsRequested" />
-            </ui:ThemeShadowChrome>
+            <c:RoomCard DeleteRequested="RoomCard_DeleteRequested" ShowSettingsRequested="RoomCard_ShowSettingsRequested"
+                        OpenRequested="RoomCard_OpenRequested" />
         </DataTemplate>
         <DataTemplate x:Key="AddRoomCardTemplate">
-            <ui:ThemeShadowChrome IsShadowEnabled="True" Depth="10">
-                <c:AddRoomCard AddRoomRequested="AddRoomCard_AddRoomRequested"/>
-            </ui:ThemeShadowChrome>
+            <c:AddRoomCard AddRoomRequested="AddRoomCard_AddRoomRequested"/>
         </DataTemplate>
         <converters:NullValueTemplateSelector
             x:Key="SelectorTemplate"                                               
@@ -36,16 +34,56 @@
             Null="{StaticResource AddRoomCardTemplate}"/>
         <converters:BoolToValueConverter x:Key="BooleanToUniformGridLayoutConverter">
             <converters:BoolToValueConverter.TrueValue>
-                <ui:UniformGridLayout MinItemWidth="230" MinItemHeight="125"
-                    ItemsStretch="None" MinRowSpacing="7" MinColumnSpacing="5"/>
+                <ui:UniformGridLayout MinItemWidth="230" MinItemHeight="129.375"
+                    ItemsStretch="None" MinRowSpacing="24" MinColumnSpacing="24"/>
             </converters:BoolToValueConverter.TrueValue>
             <converters:BoolToValueConverter.FalseValue>
                 <ui:UniformGridLayout MinItemWidth="230" MinItemHeight="100"
-                    ItemsStretch="None" MinRowSpacing="7" MinColumnSpacing="5"/>
+                    ItemsStretch="None" MinRowSpacing="24" MinColumnSpacing="24"/>
             </converters:BoolToValueConverter.FalseValue>
         </converters:BoolToValueConverter>
     </ui:Page.Resources>
-    <Grid>
+    <Grid x:Name="HomeRoot" Background="Transparent">
+        <Grid.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="{l:Loc RoomListPage_Menu_File}">
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_OpenWorkDirectory}" Click="MenuItem_OpenWorkDirectory_Click" />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_SaveConfig}" Click="MenuItem_SaveConfig_Click" />
+                    <Separator />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_ChangeWorkPath}" Click="MenuItem_ChangeWorkPath_Click" />
+                    <Separator />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_ShowLogFilesInExplorer}" Click="MenuItem_ShowLogFilesInExplorer_Click" />
+                </MenuItem>
+                <MenuItem Header="{l:Loc RoomListPage_Menu_View}">
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_Sort_Default}" Tag="{x:Static local:SortedBy.None}" Click="MenuItem_SortBy_Click" />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_Sort_RoomId}" Tag="{x:Static local:SortedBy.RoomId}" Click="MenuItem_SortBy_Click" />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_Sort_Status}" Tag="{x:Static local:SortedBy.Status}" Click="MenuItem_SortBy_Click" />
+                    <Separator />
+                    <MenuItem Header="开播时弹出系统通知" IsCheckable="True" IsChecked="{Binding Config.Global.WpfNotifyStreamStart}" />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_View_ShowTitleAndAreaCheckBox}" IsCheckable="True" IsChecked="{Binding Config.Global.WpfShowTitleAndArea}" />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_View_ShowLogCheckBox}" IsCheckable="True" Checked="MenuItem_ShowLog_Click" Unchecked="MenuItem_HideLog_Click" />
+                </MenuItem>
+                <MenuItem Header="{l:Loc RoomListPage_Menu_AutoRecord}">
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_AutoRecord_EnableAll}" Click="MenuItem_EnableAutoRecAll_Click" />
+                    <MenuItem Header="{l:Loc RoomListPage_Menu_AutoRecord_DisableAll}" Click="MenuItem_DisableAutoRecAll_Click" />
+                    <Separator />
+                    <MenuItem Header="刷新全部房间信息" Click="MenuItem_RefreshAllRoomInfo_Click" />
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="外观与语言">
+                    <MenuItem Header="打开皮肤设置…" Click="MenuItem_OpenSkin_Click" />
+                    <MenuItem Header="切换浅色 / 深色" Click="MenuItem_ToggleTheme_Click" />
+                    <Separator />
+                    <MenuItem Header="语言">
+                        <MenuItem Header="简体中文" CommandParameter="" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                        <MenuItem Header="繁體中文" CommandParameter="zh-Hant" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                        <MenuItem Header="日本語" CommandParameter="ja" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                        <MenuItem Header="English" CommandParameter="en" Command="{Binding Source={x:Static l:LocalizeDictionary.Instance}, Path=SetCultureCommand}" />
+                    </MenuItem>
+                </MenuItem>
+            </ContextMenu>
+        </Grid.ContextMenu>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition x:Name="RoomListRowDefinition" Height="*"/>
@@ -53,61 +91,11 @@
             <RowDefinition x:Name="LogRowDefinition" Height="0"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <StackPanel>
-            <Menu x:Name="TopMenu">
-                <Separator/>
-                <MenuItem Header="{l:Loc RoomListPage_Menu_File}">
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_OpenWorkDirectory}" Click="MenuItem_OpenWorkDirectory_Click"/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_SaveConfig}" Click="MenuItem_SaveConfig_Click"/>
-                    <Separator/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_ChangeWorkPath}" Click="MenuItem_ChangeWorkPath_Click"/>
-                    <Separator/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_File_ShowLogFilesInExplorer}" Click="MenuItem_ShowLogFilesInExplorer_Click"/>
-                </MenuItem>
-                <MenuItem Header="{l:Loc RoomListPage_Menu_View}">
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_Sort_Default}" Tag="{x:Static local:SortedBy.None}" Click="MenuItem_SortBy_Click"/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_Sort_RoomId}" Tag="{x:Static local:SortedBy.RoomId}" Click="MenuItem_SortBy_Click"/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_Sort_Status}" Tag="{x:Static local:SortedBy.Status}" Click="MenuItem_SortBy_Click"/>
-                    <Separator/>
-                    <MenuItem Header="开播时弹出系统通知" IsCheckable="True" IsChecked="{Binding Config.Global.WpfNotifyStreamStart}"/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_View_ShowTitleAndAreaCheckBox}" IsCheckable="True" IsChecked="{Binding Config.Global.WpfShowTitleAndArea}"/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_View_ShowLogCheckBox}" IsCheckable="True" Checked="MenuItem_ShowLog_Click" Unchecked="MenuItem_HideLog_Click"/>
-                </MenuItem>
-                <MenuItem Header="{l:Loc RoomListPage_Menu_AutoRecord}">
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_AutoRecord_EnableAll}" Click="MenuItem_EnableAutoRecAll_Click"/>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_AutoRecord_DisableAll}" Click="MenuItem_DisableAutoRecAll_Click"/>
-                    <Separator/>
-                    <MenuItem Header="刷新全部房间信息" Click="MenuItem_RefreshAllRoomInfo_Click"/>
-                </MenuItem>
-                <MenuItem Header="{l:Loc RoomListPage_Menu_Links}">
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_Links_Website}" Command="{x:Static m:Commands.OpenLink}" CommandParameter="https://gekota.example.com/">
-                        <MenuItem.Icon>
-                            <ui:PathIcon Style="{StaticResource PathIconDataOpenInNew}"/>
-                        </MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_Links_FAQ}" Command="{x:Static m:Commands.OpenLink}" CommandParameter="https://gekota.example.com/link/faq/">
-                        <MenuItem.Icon>
-                            <ui:PathIcon Style="{StaticResource PathIconDataOpenInNew}"/>
-                        </MenuItem.Icon>
-                    </MenuItem>
-                    <MenuItem Header="{l:Loc RoomListPage_Menu_Links_Sponsor}" Command="{x:Static m:Commands.OpenLink}" CommandParameter="https://gekota.example.com/link/sponsor/">
-                        <MenuItem.Icon>
-                            <ui:PathIcon Style="{StaticResource PathIconDataOpenInNew}"/>
-                        </MenuItem.Icon>
-                    </MenuItem>
-                </MenuItem>
-                <MenuItem Header="{l:Loc RoomListPage_Menu_Links_Sponsor}" Command="{x:Static m:Commands.OpenLink}" CommandParameter="https://gekota.example.com/link/sponsor/">
-                    <MenuItem.Icon>
-                        <ui:PathIcon Style="{StaticResource PathIconDataOpenInNew}"/>
-                    </MenuItem.Icon>
-                </MenuItem>
-            </Menu>
-            <Separator/>
-        </StackPanel>
-        <ui:ItemsRepeaterScrollHost Grid.Row="1">
+
+        <ui:ItemsRepeaterScrollHost Grid.Row="1" Margin="0,24,0,0">
             <ScrollViewer>
                 <ui:ItemsRepeater
-                HorizontalAlignment="Stretch" Margin="8"
+                HorizontalAlignment="Stretch" Margin="0"
                 Layout="{Binding Config.Global.WpfShowTitleAndArea,Mode=OneWay,Converter={StaticResource BooleanToUniformGridLayoutConverter}}"
                 ItemsSource="{Binding RoomList, RelativeSource={RelativeSource Mode=FindAncestor,AncestorType=ui:Page}}"
                 ItemTemplate="{StaticResource SelectorTemplate}" />
@@ -123,21 +111,5 @@
             </Border>
         </ui:ThemeShadowChrome>
 
-        <!-- 自定义外观按钮（右下角） -->
-        <Button x:Name="AppearanceButton" Grid.Row="1" Grid.RowSpan="4"
-                HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                Width="48" Height="48" Margin="0,0,30,30"
-                Opacity="0.8" Padding="0" Panel.ZIndex="99"
-                ToolTip="自定义外观" Click="AppearanceButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="Button">
-                    <Border CornerRadius="10" Background="#66000000">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                </ControlTemplate>
-            </Button.Template>
-            <ui:PathIcon Width="22" Height="22" Foreground="White"
-                         Style="{StaticResource PathIconDataTshirt}"/>
-        </Button>
     </Grid>
 </ui:Page>

@@ -15,6 +15,8 @@
     xmlns:models="clr-namespace:Gekota.WPF.Models"
     mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
     d:DataContext="{d:DesignInstance Type=models:RootModel,IsDesignTimeCreatable=True}"
+    Width="1152" Height="768"
+    HorizontalAlignment="Center" VerticalAlignment="Center"
     Background="Transparent">
 
     <UserControl.Resources>
@@ -48,6 +50,8 @@
             <Setter Property="Height" Value="18" />
             <Setter Property="Margin" Value="0,0,10,0" />
             <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -59,13 +63,10 @@
                                      Fill="{TemplateBinding Background}"
                                      Stroke="#20000000"
                                      StrokeThickness="0.5" />
-                            <Viewbox x:Name="GlyphHost"
-                                     Width="9" Height="9"
-                                     Opacity="0"
-                                     HorizontalAlignment="Center"
-                                     VerticalAlignment="Center">
-                                <ContentPresenter />
-                            </Viewbox>
+                            <ContentPresenter x:Name="GlyphHost"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Opacity="0" />
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -184,31 +185,39 @@
                                 Background="#28C840"
                                 ToolTip="最小化"
                                 Click="MinimizeWindowButton_Click">
-                            <Path Data="M 0,4 L 8,4"
-                                  Stroke="#7A000000"
-                                  StrokeThickness="1.6"
-                                  StrokeStartLineCap="Round" />
+                            <Canvas Width="18" Height="18">
+                                <Path Data="M 4,9 L 14,9"
+                                      Stroke="#7A000000"
+                                      StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" />
+                            </Canvas>
                         </Button>
                         <Button x:Name="MaximizeWindowButton"
                                 Style="{StaticResource TrafficLightButtonStyle}"
                                 Background="#FEBC2E"
                                 ToolTip="最大化"
                                 Click="MaximizeWindowButton_Click">
-                            <Path Data="M 0,4 L 8,4 M 4,0 L 4,8"
-                                  Stroke="#7A000000"
-                                  StrokeThickness="1.6"
-                                  StrokeStartLineCap="Round" />
+                            <Canvas Width="18" Height="18">
+                                <Path Data="M 4,9 L 14,9 M 9,4 L 9,14"
+                                      Stroke="#7A000000"
+                                      StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" />
+                            </Canvas>
                         </Button>
                         <Button x:Name="CloseWindowButton"
                                 Style="{StaticResource TrafficLightButtonStyle}"
                                 Background="#FF5F57"
                                 ToolTip="关闭"
                                 Click="CloseWindowButton_Click">
-                            <Path Data="M 0,0 L 8,8 M 8,0 L 0,8"
-                                  Stroke="#7A000000"
-                                  StrokeThickness="1.6"
-                                  StrokeStartLineCap="Round"
-                                  StrokeEndLineCap="Round" />
+                            <Canvas Width="18" Height="18">
+                                <Path Data="M 5,5 L 13,13 M 13,5 L 5,13"
+                                      Stroke="#7A000000"
+                                      StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" />
+                            </Canvas>
                         </Button>
 
 

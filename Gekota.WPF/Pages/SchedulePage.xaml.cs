@@ -67,6 +67,14 @@ namespace Gekota.WPF.Pages
             this.refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
             this.refreshTimer.Tick += async (s, e) => await this.LoadReservationsAsync();
             this.Loaded += this.SchedulePage_Loaded;
+            this.DataContextChanged += async (s, e) =>
+            {
+                if (!this.initialized || e.NewValue is not IRecorder || this.refreshing) return;
+                await this.BuildStreamerTilesAsync();
+                if (this.StreamerBar.SelectedIndex < 0 && this.StreamerTiles.Count > 0)
+                    this.StreamerBar.SelectedIndex = 0;
+                await this.LoadReservationsAsync();
+            };
             this.Unloaded += (s, e) => this.refreshTimer.Stop();
         }
 
@@ -94,12 +102,28 @@ namespace Gekota.WPF.Pages
                 return;
             }
             this.initialized = true;
+            if (!await this.WaitForRecorderAsync())
+            {
+                this.LoadingOverlay.Visibility = Visibility.Collapsed;
+                this.ShowFailure("正在读取房间信息，请稍后再试。");
+                return;
+            }
             this.BuildWeekGrid();
             await this.BuildStreamerTilesAsync();
             if (this.StreamerBar.SelectedIndex < 0 && this.StreamerTiles.Count > 0)
                 this.StreamerBar.SelectedIndex = 0;
             await this.LoadReservationsAsync();
             this.refreshTimer.Start();
+        }
+
+        private async Task<bool> WaitForRecorderAsync()
+        {
+            for (var i = 0; i < 20; i++)
+            {
+                if (this.DataContext is IRecorder) return true;
+                await Task.Delay(200);
+            }
+            return this.DataContext is IRecorder;
         }
 
         private async Task BuildStreamerTilesAsync()
@@ -346,7 +370,7 @@ namespace Gekota.WPF.Pages
                     (r.Name ?? "").IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0));
                 if (rooms.Count == 0)
                 {
-                    this.ShowFailure("没有匹配到贝拉、嘉然、乃琳、心宜、思诺。");
+                    this.ShowFailure("还没有添加主播，请先在首页添加直播间。");
                     return;
                 }
 
@@ -401,9 +425,16 @@ namespace Gekota.WPF.Pages
                         {
                             try
                             {
+                                var postText = item.SelectToken("modules.module_dynamic.desc.text")?.Value<string>()
+                                               ?? item.SelectToken("modules.module_dynamic.major.opus.summary.text")?.Value<string>()
+                                               ?? "";
                                 var additional = item.SelectToken("modules.module_dynamic.additional");
                                 if (!string.Equals(additional?.Value<string>("type"), "ADDITIONAL_TYPE_RESERVE",
-                                        StringComparison.Ordinal)) continue;
+                                        StringComparison.Ordinal))
+                                {
+                                    this.AddDynamicSchedules(postText, room, monday, end);
+                                    continue;
+                                }
                                 var reserve = additional?.SelectToken("reserve");
                                 if (reserve == null) continue;
 
@@ -579,6 +610,65 @@ namespace Gekota.WPF.Pages
             if (string.Equals(message, this.lastFailureMessage, StringComparison.Ordinal)) return;
             this.lastFailureMessage = message;
             MessageBox.Show(message, "日程表", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void AddDynamicSchedules(string text, IRoom room, DateTime monday, DateTime end)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            var roomName = CanonicalName(room.Name);
+            foreach (var line in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (!TryParseDynamicStart(line, out var start)) continue;
+                if (start < monday || start >= end) continue;
+                var titleMatch = Regex.Match(line, @"[\u3010\[]([^\u3011\]]+)[\u3011\]]");
+                var title = titleMatch.Success ? titleMatch.Groups[1].Value : "\u76f4\u64ad";
+                var key = ScheduleSkipPolicy.Key(roomName, start);
+                var theme = this.themeByRoom.TryGetValue(roomName, out var color)
+                    ? color
+                    : Colors.White;
+                this.reservations.Add(new ReservationItem(
+                    start, roomName, title, key, theme, this.skippedKeys.Contains(key),
+                    cancelled: false, isZhijiang: false, rawText: line));
+            }
+        }
+
+        private static bool TryParseDynamicStart(string line, out DateTime start)
+        {
+            start = default;
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            var date = Regex.Match(line, @"(?:(\d{1,2})\u6708(\d{1,2})\u65e5|(\d{1,2})[-/](\d{1,2}))");
+            var relative = Regex.Match(line, @"(\u4eca\u5929|\u660e\u5929|\u540e\u5929)");
+            if (!date.Success && !relative.Success) return false;
+
+            var time = Regex.Match(line, @"(\d{1,2})[：:](\d{2})");
+            var hour = time.Success && int.TryParse(time.Groups[1].Value, out var h) ? h : 20;
+            var minute = time.Success && int.TryParse(time.Groups[2].Value, out var m) ? m : 0;
+            if (hour > 23 || minute > 59) return false;
+
+            try
+            {
+                if (relative.Success)
+                {
+                    var offset = relative.Groups[1].Value == "\u660e\u5929" ? 1 :
+                        relative.Groups[1].Value == "\u540e\u5929" ? 2 : 0;
+                    start = DateTime.Today.AddDays(offset).AddHours(hour).AddMinutes(minute);
+                    return true;
+                }
+
+                var month = int.TryParse(date.Groups[1].Value, out var mm) ? mm :
+                    int.TryParse(date.Groups[3].Value, out var mm2) ? mm2 : 0;
+                var day = int.TryParse(date.Groups[2].Value, out var dd) ? dd :
+                    int.TryParse(date.Groups[4].Value, out var dd2) ? dd2 : 0;
+                if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+                start = new DateTime(DateTime.Today.Year, month, day, hour, minute, 0);
+                if (start < DateTime.Today.AddMonths(-6)) start = start.AddYears(1);
+                else if (start > DateTime.Today.AddMonths(6)) start = start.AddYears(-1);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static bool TryParseReserveStart(string text, out DateTime start)

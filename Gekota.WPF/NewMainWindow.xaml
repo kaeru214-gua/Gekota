@@ -23,7 +23,7 @@
         ui:ThemeManager.IsThemeAware="True"
         ui:ThemeManager.RequestedTheme="Default"
         Width="1152" Height="768"
-        MinWidth="900" MinHeight="600"
+        MinWidth="600" MinHeight="400"
         WindowStartupLocation="CenterScreen"
         Closing="Window_Closing"
         StateChanged="Window_StateChanged">

@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Gekota.WPF.Controls;
 using Gekota.WPF.Services;
@@ -34,13 +35,51 @@ namespace Gekota.WPF
 #endif
 
             this.InitializeComponent();
+            this.ApplyResponsiveWindowSize();
+            this.SizeChanged += (s, e) => this.ApplyUiScale();
+            this.ApplyUiScale();
 
             SingleInstance.NotificationReceived += this.SingleInstance_NotificationReceived;
+        }
+
+        private void ApplyResponsiveWindowSize()
+        {
+            var work = SystemParameters.WorkArea;
+            // 1080p 使用 1152×768；高分辨率按比例放大，4K 上限 1800×1200。
+            var scale = Math.Max(1.0, Math.Min(work.Width / 1920.0, work.Height / 1080.0));
+            var width = Math.Min(1800.0, 1152.0 * scale);
+            var height = width * 2.0 / 3.0;
+            if (height > 1200.0)
+            {
+                height = 1200.0;
+                width = 1800.0;
+            }
+            if (width > work.Width * 0.84)
+            {
+                width = work.Width * 0.84;
+                height = width * 2.0 / 3.0;
+            }
+            if (height > work.Height * 0.84)
+            {
+                height = work.Height * 0.84;
+                width = height * 3.0 / 2.0;
+            }
+            this.Width = Math.Max(600.0, width);
+            this.Height = Math.Max(400.0, height);
+        }
+
+        private void ApplyUiScale()
+        {
+            if (this.RootPage == null || this.ActualWidth <= 0 || this.ActualHeight <= 0) return;
+            var scale = Math.Min(this.ActualWidth / 1152.0, this.ActualHeight / 768.0);
+            if (scale <= 0 || double.IsNaN(scale)) return;
+            this.RootPage.LayoutTransform = new ScaleTransform(scale, scale);
         }
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {
             base.OnRenderSizeChanged(sizeInfo);
+            this.ApplyUiScale();
             WindowEffects.ApplyRoundedRegion(this);
         }
 
@@ -136,6 +175,10 @@ namespace Gekota.WPF
             if (msg == WM_GETMINMAXINFO)
             {
                 var info = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+                var dpi = VisualTreeHelper.GetDpi(this);
+                info.ptMinTrackSize.X = (int)Math.Round(600 * dpi.DpiScaleX);
+                info.ptMinTrackSize.Y = (int)Math.Round(400 * dpi.DpiScaleY);
+
                 var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
                 var monitorInfo = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
                 if (GetMonitorInfo(monitor, ref monitorInfo))
@@ -152,27 +195,46 @@ namespace Gekota.WPF
             }
             else if (msg == WM_SIZING && this.WindowState == WindowState.Normal)
             {
-                // 小窗固定 3:2；最大化仍走系统工作区。
                 var rect = Marshal.PtrToStructure<RECT>(lParam);
                 var edge = wParam.ToInt32();
                 var width = rect.Right - rect.Left;
                 var height = rect.Bottom - rect.Top;
                 if (width <= 0 || height <= 0) return IntPtr.Zero;
 
+                var dpi = VisualTreeHelper.GetDpi(this);
+                var minWidth = (int)Math.Round(600 * dpi.DpiScaleX);
+                var minHeight = (int)Math.Round(400 * dpi.DpiScaleY);
+
                 if (edge == 3 || edge == 6)
                 {
-                    // 拖上下边：以高度反推宽度
-                    var newWidth = (int)Math.Round(height * 3.0 / 2.0);
-                    rect.Right = rect.Left + newWidth;
+                    height = Math.Max(minHeight, height);
+                    width = Math.Max(minWidth, (int)Math.Round(height * 3.0 / 2.0));
+                    height = (int)Math.Round(width * 2.0 / 3.0);
+                    rect.Right = rect.Left + width;
+                    if (edge == 3)
+                        rect.Top = rect.Bottom - height;
+                    else
+                        rect.Bottom = rect.Top + height;
                 }
                 else
                 {
-                    // 拖左右边/四角：以宽度反推高度
-                    var newHeight = (int)Math.Round(width * 2.0 / 3.0);
-                    if (edge == 3 || edge == 4 || edge == 5)
-                        rect.Top = rect.Bottom - newHeight;
+                    width = Math.Max(minWidth, width);
+                    height = (int)Math.Round(width * 2.0 / 3.0);
+                    if (height < minHeight)
+                    {
+                        height = minHeight;
+                        width = (int)Math.Round(height * 3.0 / 2.0);
+                    }
+
+                    if (edge == 1 || edge == 4 || edge == 7)
+                        rect.Left = rect.Right - width;
                     else
-                        rect.Bottom = rect.Top + newHeight;
+                        rect.Right = rect.Left + width;
+
+                    if (edge == 4 || edge == 5)
+                        rect.Top = rect.Bottom - height;
+                    else
+                        rect.Bottom = rect.Top + height;
                 }
 
                 Marshal.StructureToPtr(rect, lParam, true);

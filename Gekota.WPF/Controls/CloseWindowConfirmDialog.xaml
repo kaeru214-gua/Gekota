@@ -58,16 +58,16 @@
     <ui:ContentDialog.Template>
         <ControlTemplate TargetType="ui:ContentDialog">
             <Grid>
-                <Border Background="#33000000" CornerRadius="21" Margin="1" />
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
+                <Border Background="#66000000" CornerRadius="21" Margin="1" />
+                <Border Background="#F2F2F3F7"
+                        BorderBrush="#80FFFFFF"
+                        BorderThickness="1"
                         CornerRadius="{TemplateBinding CornerRadius}"
-                        MaxWidth="440"
-                        MaxHeight="360"
+                        Width="300"
+                        Height="200"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        Padding="24,22">
+                        Padding="18,14">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="30" ShadowDepth="8" Opacity="0.22" Color="#000000" />
                     </Border.Effect>
@@ -77,27 +77,37 @@
         </ControlTemplate>
     </ui:ContentDialog.Template>
 
-    <Grid Width="360">
+    <Grid Height="172">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <TextBlock Text="{l:Loc CloseWindowConfirmDialog_Title}"
                    TextAlignment="Center"
                    VerticalAlignment="Center"
-                   FontSize="26" />
+                   HorizontalAlignment="Center"
+                   FontSize="22" />
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal"
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0"
+                    Style="{StaticResource GlassDialogPrimaryButtonStyle}"
+                    Width="112" Height="32"
                     HorizontalAlignment="Center"
-                    Margin="0,26,0,0">
-            <Button Style="{StaticResource GlassDialogPrimaryButtonStyle}"
+                    VerticalAlignment="Center"
                     Content="{l:Loc Global_Quit}"
                     Click="ExitButton_Click" />
-            <Button Style="{StaticResource GlassDialogButtonStyle}"
+            <Button Grid.Column="1"
+                    Style="{StaticResource GlassDialogButtonStyle}"
+                    Width="112" Height="32"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
                     Content="{l:Loc Global_Cancel}"
-                    Margin="8,0,0,0"
                     Click="CancelButton_Click" />
-        </StackPanel>
+        </Grid>
     </Grid>
 </ui:ContentDialog>

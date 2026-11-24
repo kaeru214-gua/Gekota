@@ -42,7 +42,7 @@
     cell.setAttribute('data-room', room.room);
     cell.addEventListener('click', function () { openRoom(room.room); });
 
-    if (room.cover) {
+    if (room.cover && !room.live) {
       var img = document.createElement('img');
       img.className = 'cover';
       img.alt = '';
@@ -89,6 +89,9 @@
       state.textContent = '播放库缺失';
       return;
     }
+
+    var cover = cell.querySelector('.cover');
+    if (cover) cover.style.display = 'none';
 
     var video = document.createElement('video');
     video.muted = false;
@@ -206,38 +209,47 @@
     empty.hidden = rooms.length > 0;
     if (!rooms.length) return;
 
-    var liveCount = rooms.filter(function (r) { return r.live; }).length;
-    var total = rooms.length;
-    var nine = (total > 5 && liveCount > 4) || (total <= 5 && liveCount > 3);
+    var live = rooms.filter(function (r) { return r.live; });
+    var offline = rooms.filter(function (r) { return !r.live; });
 
-    if (nine) {
-      wall.className = 'grid';
+    // 全部未开播：按数量切换 1 / 2 / 3 / 4 / 9 宫格，最多 9 个。
+    if (!live.length) {
+      var shown = rooms.slice(0, 9);
+      var cols = shown.length <= 3 ? shown.length : (shown.length === 4 ? 2 : 3);
+      var rows = shown.length <= 3 ? 1 : (shown.length === 4 ? 2 : 3);
+      wall.className = "offline-wall";
+      wall.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
+      wall.style.gridTemplateRows = "repeat(" + rows + ", minmax(0, 1fr))";
+      shown.forEach(function (room) { wall.appendChild(makeCell(room)); });
+      return;
+    }
+
+    if (live.length > 4) {
+      wall.className = "grid";
       rooms.forEach(function (room) { wall.appendChild(makeCell(room)); });
       return;
     }
 
-    wall.className = 'wall';
-    var leftCount = total === 1 ? 1 : (liveCount === 1 ? 1 : 2);
-    leftCount = Math.min(leftCount, total);
-    var left = rooms.slice(0, leftCount);
-    var right = rooms.slice(leftCount);
-
-    var leftCol = document.createElement('div');
-    leftCol.className = 'col';
-    left.forEach(function (room) { leftCol.appendChild(makeCell(room)); });
+    wall.className = "wall";
+    var leftCol = document.createElement("div");
+    leftCol.className = "live-grid live-count-" + live.length;
+    live.forEach(function (room) { leftCol.appendChild(makeCell(room)); });
+    if (live.length === 1) {
+      leftCol.style.gridTemplateColumns = "1fr";
+      leftCol.style.gridTemplateRows = "1fr";
+    } else if (live.length === 2) {
+      leftCol.style.gridTemplateColumns = "1fr";
+      leftCol.style.gridTemplateRows = "repeat(2, minmax(0, 1fr))";
+    }
     wall.appendChild(leftCol);
 
-    if (right.length) {
-      var rightCol = document.createElement('div');
-      rightCol.className = 'col';
-      right.forEach(function (room) { rightCol.appendChild(makeCell(room)); });
+    if (offline.length) {
+      var rightCol = document.createElement("div");
+      rightCol.className = "offline-col";
+      offline.forEach(function (room) { rightCol.appendChild(makeCell(room)); });
       wall.appendChild(rightCol);
-
-      // 左侧是主画面列，始终比右侧未开播列宽；直播越多占比越高。
-      leftCol.style.flex = liveCount >= 2 ? '1.9 1 0'
-        : liveCount === 1 ? '2.4 1 0'
-        : '1.6 1 0';
-      rightCol.style.flex = '1 1 0';
+      leftCol.style.flex = "1 1 auto";
+      rightCol.style.flex = "0 0 22%";
     }
   }
 

@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -264,6 +266,57 @@ namespace Gekota.WPF.Controls
                     System.Diagnostics.Process.Start("https://live.bilibili.com/" + r.RoomConfig.RoomId);
                 }
                 catch (Exception) { }
+            }
+        }
+
+        private void MenuItem_EditTags_Click(object sender, RoutedEventArgs e)
+        {
+            this.EditProfile("标签设置", "每个标签用 ; 隔开，例如：A-SOUL;贝拉;直播", "tag.txt");
+        }
+
+        private void MenuItem_EditDescription_Click(object sender, RoutedEventArgs e)
+        {
+            this.EditProfile("编辑简介", "这段文字会作为自动上传的视频简介。", "简介.txt");
+        }
+
+        private void EditProfile(string title, string hint, string fileName)
+        {
+            if (this.DataContext is not IRoom room) return;
+            try
+            {
+                var folder = GetStreamerFolder(room);
+                if (string.IsNullOrWhiteSpace(folder)) return;
+                Directory.CreateDirectory(folder);
+                var path = Path.Combine(folder, fileName);
+                var initial = File.Exists(path) ? File.ReadAllText(path) : "";
+                var dialog = new ProfileEditDialog(title, hint, initial)
+                {
+                    Owner = Window.GetWindow(this),
+                };
+                if (dialog.ShowDialog() != true) return;
+                File.WriteAllText(path, dialog.Result, new UTF8Encoding(false));
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[主播资料] 保存失败 {File}", fileName);
+                MessageBox.Show("保存失败：" + ex.Message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private static string? GetStreamerFolder(IRoom room)
+        {
+            var work = RootPage.Current?.Model.Recorder?.Config.Global.WorkDirectory;
+            if (string.IsNullOrWhiteSpace(work)) return null;
+            var direct = Path.Combine(work, room.RoomConfig.RoomId + "-" + room.Name);
+            if (Directory.Exists(direct)) return direct;
+            try
+            {
+                return Directory.EnumerateDirectories(work, room.RoomConfig.RoomId + "-*",
+                    SearchOption.TopDirectoryOnly).FirstOrDefault() ?? direct;
+            }
+            catch
+            {
+                return direct;
             }
         }
 

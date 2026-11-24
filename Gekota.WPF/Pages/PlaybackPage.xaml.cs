@@ -253,7 +253,9 @@ namespace Gekota.WPF.Pages
         {
             const string js =
                 "(function(){try{var v=document.querySelector('video');" +
-                "if(v){v.muted=false;if(v.volume===0)v.volume=0.7;}}catch(e){}})()";
+                "if(v){var m=localStorage.getItem('gekota_muted');var s=localStorage.getItem('gekota_volume');" +
+                "if(s!==null){var n=Number(s);if(!isNaN(n))v.volume=Math.max(0,Math.min(1,n));}" +
+                "if(m!=='1'){v.muted=false;if(v.volume===0)v.volume=0.7;}}}catch(e){}})()";
 
             for (var i = 0; i < 6; i++)
             {
@@ -417,6 +419,9 @@ namespace Gekota.WPF.Pages
                     uid = e.UserId,
                     uname = e.UserName,
                     text = e.Text,
+                    special = e.IsSuperChat,
+                    price = e.Price,
+                    keepTime = e.KeepTime,
                 });
                 _ = this.Dispatcher.BeginInvoke(new Action(() =>
                 {

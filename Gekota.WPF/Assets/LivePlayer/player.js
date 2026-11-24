@@ -38,7 +38,7 @@
   var stallHits = [];
   var lastDowngradeAt = 0;
 
-  var dm = { size: 22, opacity: 100, speed: 9, area: 'full', color: '#ffffff', stroke: 1 };
+  var dm = { size: 22, opacity: 100, speed: 9, area: 'full', color: '#ffffff', stroke: 1, noOverlap: true, special: true, scSide: 'left', scOpacity: 85 };
   try {
     var savedDm = JSON.parse(localStorage.getItem('gekota_dm') || 'null');
     if (savedDm && typeof savedDm === 'object') {
@@ -48,13 +48,33 @@
       dm.area = savedDm.area || dm.area;
       dm.color = savedDm.color || dm.color;
       dm.stroke = savedDm.stroke === 0 ? 0 : 1;
+      dm.noOverlap = savedDm.noOverlap !== false;
+      dm.special = savedDm.special !== false;
+      dm.scSide = savedDm.scSide === 'right' ? 'right' : 'left';
+      dm.scOpacity = Number(savedDm.scOpacity) || 85;
     }
   } catch (e) { }
+
+  try {
+    var savedVolume = localStorage.getItem('gekota_volume');
+    if (savedVolume !== null) video.volume = Math.max(0, Math.min(1, Number(savedVolume)));
+    video.muted = localStorage.getItem('gekota_muted') === '1';
+  } catch (e) { }
+  volume.value = String(video.volume);
+  muteButton.textContent = video.muted ? '🔇' : '🔊';
+
+  function savePlaybackSettings() {
+    try {
+      localStorage.setItem('gekota_volume', String(video.volume));
+      localStorage.setItem('gekota_muted', video.muted ? '1' : '0');
+    } catch (e) { }
+  }
 
   function applyDmSettings() {
     danmakuLayer.style.setProperty('--dm-size', dm.size + 'px');
     danmakuLayer.style.setProperty('--dm-opacity', String(dm.opacity / 100));
     danmakuLayer.style.setProperty('--dm-color', dm.color);
+    danmakuLayer.style.setProperty('--sc-opacity', String(dm.scOpacity / 100));
     danmakuLayer.style.setProperty('--dm-shadow',
       dm.stroke ? '0 1px 2px #000, 0 0 6px #000' : 'none');
     try { localStorage.setItem('gekota_dm', JSON.stringify(dm)); } catch (e) { }
@@ -100,14 +120,60 @@
     var el = document.createElement('div');
     el.className = 'dm';
     el.textContent = text;
+    var duration = dm.speed + Math.random() * 2;
     var top;
-    if (dm.area === 'top') top = 6 + Math.random() * 30;
-    else if (dm.area === 'bottom') top = 38 + Math.random() * 32;
-    else top = 8 + Math.random() * 62;
+    if (dm.noOverlap) {
+      var now = Date.now();
+      var lane = -1;
+      for (var i = 0; i < 12; i++) {
+        if (!laneUntil[i] || laneUntil[i] <= now) { lane = i; break; }
+      }
+      if (lane < 0) return;
+      laneUntil[lane] = now + duration * 1000;
+      if (dm.area === 'top') top = 4 + lane * 3;
+      else if (dm.area === 'bottom') top = 36 + lane * 4;
+      else top = 6 + lane * 7;
+      top = Math.min(88, top);
+    } else {
+      if (dm.area === 'top') top = 6 + Math.random() * 30;
+      else if (dm.area === 'bottom') top = 38 + Math.random() * 32;
+      else top = 8 + Math.random() * 62;
+    }
     el.style.top = top + '%';
-    el.style.animationDuration = (dm.speed + Math.random() * 2) + 's';
+    el.style.animationDuration = duration + 's';
     el.addEventListener('animationend', function () { el.remove(); });
     danmakuLayer.appendChild(el);
+  }
+
+  var laneUntil = [];
+
+  function getScStack() {
+    var stack = document.getElementById("sc-stack");
+    if (!stack) {
+      stack = document.createElement("div");
+      stack.id = "sc-stack";
+      stack.className = "sc-stack";
+      danmakuLayer.appendChild(stack);
+    }
+    stack.classList.toggle("right", dm.scSide === "right");
+    return stack;
+  }
+
+  function showSpecialDanmaku(uname, text, price, keepTime) {
+    if (!dm.special || !text) return;
+    var box = document.createElement("div");
+    box.className = "sc-live";
+    var head = document.createElement("div");
+    head.className = "sc-live-head";
+    head.textContent = (uname || "SC") + (price > 0 ? " · ¥" + price : "");
+    var body = document.createElement("div");
+    body.className = "sc-live-body";
+    body.textContent = text;
+    box.appendChild(head);
+    box.appendChild(body);
+    getScStack().appendChild(box);
+    var seconds = Number(keepTime) > 0 ? Number(keepTime) : 12;
+    setTimeout(function () { box.remove(); }, seconds * 1000);
   }
 
   function destroyPlayer() {
@@ -193,12 +259,14 @@
 
   muteButton.addEventListener('click', function () {
     video.muted = !video.muted;
+    savePlaybackSettings();
     muteButton.textContent = video.muted ? '🔇' : '🔊';
   });
 
   volume.addEventListener('input', function () {
     video.volume = Number(volume.value);
     video.muted = video.volume === 0;
+    savePlaybackSettings();
     muteButton.textContent = video.muted ? '🔇' : '🔊';
   });
 
@@ -370,6 +438,10 @@
     var area = document.getElementById('dm-area');
     var color = document.getElementById('dm-color');
     var stroke = document.getElementById('dm-stroke');
+    var noOverlap = document.getElementById('dm-no-overlap');
+    var special = document.getElementById('dm-special');
+    var scSide = document.getElementById('dm-sc-side');
+    var scOpacity = document.getElementById('dm-sc-opacity');
 
     size.value = String(dm.size);
     opacity.value = String(dm.opacity);
@@ -377,6 +449,8 @@
     area.value = dm.area;
     color.value = dm.color;
     stroke.value = String(dm.stroke);
+    noOverlap.checked = dm.noOverlap;
+    special.checked = dm.special;
 
     document.getElementById('dm-settings').addEventListener('click', function () {
       panel.hidden = !panel.hidden;
@@ -390,6 +464,10 @@
       dm.area = area.value || 'full';
       dm.color = color.value || '#ffffff';
       dm.stroke = Number(stroke.value) === 0 ? 0 : 1;
+      dm.noOverlap = noOverlap.checked;
+      dm.special = special.checked;
+      dm.scSide = scSide.value === 'right' ? 'right' : 'left';
+      dm.scOpacity = Number(scOpacity.value) || 85;
       applyDmSettings();
     }
 
@@ -399,6 +477,10 @@
     area.addEventListener('change', changed);
     color.addEventListener('change', changed);
     stroke.addEventListener('change', changed);
+    noOverlap.addEventListener('change', changed);
+    special.addEventListener('change', changed);
+    scSide.addEventListener('change', changed);
+    scOpacity.addEventListener('input', changed);
 
     document.querySelectorAll('#dm-panel [data-preset]').forEach(function (button) {
       button.addEventListener('click', function () {
@@ -426,6 +508,10 @@
         area.value = dm.area;
         color.value = dm.color;
         stroke.value = String(dm.stroke);
+        noOverlap.checked = dm.noOverlap;
+        special.checked = dm.special;
+        scSide.value = dm.scSide;
+        scOpacity.value = String(dm.scOpacity);
         applyDmSettings();
         setSendState('已应用弹幕预设', false, true);
       });
@@ -442,7 +528,8 @@
         lastDmText = m.text || '';
         lastDmAt = Date.now();
         addChat(m.uname, m.text, false);
-        flyDanmaku(m.text);
+        if (m.special) showSpecialDanmaku(m.uname, m.text, Number(m.price) || 0, Number(m.keepTime) || 0);
+        else flyDanmaku(m.text);
         chatState.textContent = '实时';
       } else if (m.type === 'state') {
         chatState.textContent = m.text || '';
@@ -480,6 +567,7 @@
       else document.documentElement.requestFullscreen().catch(function () { });
     } else if (e.key === 'm' || e.key === 'M') {
       video.muted = !video.muted;
+      savePlaybackSettings();
       muteButton.textContent = video.muted ? '🔇' : '🔊';
     }
   });

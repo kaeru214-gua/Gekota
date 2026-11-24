@@ -18,6 +18,7 @@ namespace Gekota.WPF.Services
         private sealed class State
         {
             public string LastShownVersion { get; set; } = string.Empty;
+            public bool TutorialShown { get; set; }
         }
 
         private static string ConfigPath =>
@@ -45,6 +46,31 @@ namespace Gekota.WPF.Services
             }
         }
 
+        /// <summary>是否首次使用，需要展示使用教程。</summary>
+        public static bool ShouldShowTutorial()
+        {
+            try
+            {
+                var state = Load();
+                return !state.TutorialShown && string.IsNullOrWhiteSpace(state.LastShownVersion);
+            }
+            catch { return false; }
+        }
+
+        public static void MarkTutorialShown()
+        {
+            try
+            {
+                lock (sync)
+                {
+                    var state = Load();
+                    state.TutorialShown = true;
+                    Save(state);
+                }
+            }
+            catch (Exception ex) { logger.Debug(ex, "[公告] 写入教程记录失败"); }
+        }
+
         /// <summary>把当前版本记为「已弹过」。</summary>
         public static void MarkCurrentVersionShown()
         {
@@ -52,15 +78,21 @@ namespace Gekota.WPF.Services
             {
                 lock (sync)
                 {
-                    var state = new State { LastShownVersion = GekotaVersion.FullSemVer };
-                    File.WriteAllText(ConfigPath,
-                        JsonConvert.SerializeObject(state, Formatting.Indented));
+                    var state = Load();
+                    state.TutorialShown = true;
+                    state.LastShownVersion = GekotaVersion.FullSemVer;
+                    Save(state);
                 }
             }
             catch (Exception ex)
             {
                 logger.Debug(ex, "[公告] 写入弹窗记录失败");
             }
+        }
+
+        private static void Save(State state)
+        {
+            File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(state, Formatting.Indented));
         }
 
         private static State Load()

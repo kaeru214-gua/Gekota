@@ -6,166 +6,122 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ui="http://schemas.modernwpf.com/2019"
     mc:Ignorable="d"
-    d:DesignHeight="1000" d:DesignWidth="800"
+    d:DesignHeight="900" d:DesignWidth="820"
     Title="AnnouncementPage">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="30,24" MaxWidth="720" HorizontalAlignment="Left">
 
-            <!-- 开头 -->
-            <TextBlock Text="欢迎使用 Gekota" FontSize="30" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+            <TextBlock Text="声明" FontSize="30" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
 
             <Border Background="#140078D4" BorderBrush="#330078D4" BorderThickness="1"
                     CornerRadius="10" Padding="9,3" HorizontalAlignment="Left" Margin="0,8,0,0">
-                <TextBlock x:Name="VersionText" Text="v1.2.1" FontSize="12" FontWeight="Bold"
+                <TextBlock x:Name="VersionText" Text="v1.2.2" FontSize="12" FontWeight="Bold"
                            FontFamily="Microsoft YaHei" Foreground="#FF0B5FA5"/>
             </Border>
 
-            <TextBlock Margin="0,10,0,0" FontSize="16" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
-                       Text="这是一个可以让你解放双手（解放手，解放手手）的一站式录播软件。"/>
+            <TextBlock Margin="0,14,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                       Foreground="#666870" TextWrapping="Wrap"
+                       Text="Gekota 是一个免费、开源的哔哩哔哩录播工具。使用前请阅读以下声明。"/>
 
-            <!-- ===== 版本更新 ===== -->
-            <TextBlock Text="版本更新" FontSize="22" FontWeight="Bold" FontFamily="Microsoft YaHei"
-                       Margin="0,30,0,4"/>
+            <Button Content="打开使用教程" HorizontalAlignment="Left" Margin="0,12,0,0"
+                    Padding="16,7" Click="Tutorial_Click"/>
 
-            <Border Background="#0D0078D4" BorderBrush="#330078D4" BorderThickness="1"
-                    CornerRadius="10" Padding="18,16" Margin="0,10,0,0">
+            <!-- 软件声明 -->
+            <Border Background="#0D0078D4" BorderBrush="#220078D4" BorderThickness="1"
+                    CornerRadius="14" Padding="18,16" Margin="0,22,0,0">
                 <StackPanel>
-                    <TextBlock x:Name="UpdateHeaderText" FontSize="17" FontWeight="Bold"
-                               FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
-
-                    <TextBlock x:Name="UpdateIntroText" Margin="0,10,0,0" FontSize="14"
-                               FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
-
-                    <ItemsControl x:Name="UpdateItemsControl" Margin="0,2,0,0">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap" FontFamily="Microsoft YaHei">
-                                    <Run Text="• "/><Run Text="{Binding Mode=OneWay}"/>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-
-                    <Border BorderThickness="0,1,0,0" BorderBrush="#22000000" Margin="0,14,0,0" Padding="0,12,0,0">
-                        <TextBlock x:Name="UpdateFooterText" FontSize="13" FontFamily="Microsoft YaHei"
-                                   TextWrapping="Wrap" Foreground="#FF000000"/>
-                    </Border>
+                    <TextBlock Text="软件声明" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="本软件为免费软件，仅供学习交流使用，禁止用于任何商业用途。"/>
+                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="录制、压制和上传的内容版权归原主播及权利方所有。使用者应遵守哔哩哔哩平台规则及相关法律法规，不得传播违法、侵权或未经授权的内容。"/>
+                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="使用本软件产生的任何后果由使用者自行承担。"/>
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="使用流程" FontSize="22" FontWeight="Bold" FontFamily="Microsoft YaHei"
-                       Margin="0,32,0,4"/>
-
-            <!-- 1 登录 -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <ui:PathIcon Style="{StaticResource PathIconDataAccountOutline}" Width="20" Height="20"
-                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="1. 登录"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
-                               Text="在「用户」页面扫码登录哔哩哔哩"/>
+            <!-- 数据来源 -->
+            <Border Background="#0D000000" BorderBrush="#18000000" BorderThickness="1"
+                    CornerRadius="14" Padding="18,16" Margin="0,14,0,0">
+                <StackPanel>
+                    <TextBlock Text="数据来源" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="日程表数据来自哔哩哔哩动态、直播预约、微博公开动态，以及用户自行导入的日历链接。"/>
+                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="A-SOUL / 闪耀舞台日程来自闪耀舞台公开日历；本软件与哔哩哔哩、微博及日历提供方均无隶属关系。"/>
                 </StackPanel>
-            </StackPanel>
+            </Border>
 
-            <!-- 2 添加房间 -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <ui:PathIcon Style="{StaticResource PathIconDataPlus}" Width="20" Height="20"
-                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="2. 添加房间"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
-                               Text="在「房间列表」添加要录制的直播间"/>
-                </StackPanel>
-            </StackPanel>
+            <!-- 开源与致谢 -->
+            <Border Background="#0D000000" BorderBrush="#18000000" BorderThickness="1"
+                    CornerRadius="14" Padding="18,16" Margin="0,14,0,0">
+                <StackPanel>
+                    <TextBlock Text="开源与致谢" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="本项目基于 BililiveRecorder（录播姬）修改而来，遵循 GNU General Public License v3.0 协议开源。"/>
+                    <TextBlock Margin="0,4,0,0" FontSize="13" FontFamily="Microsoft YaHei"
+                               Foreground="#7A7C84" Text="原始版权：Copyright © 2018-2026 Genteure"/>
+                    <TextBlock Margin="0,2,0,0" FontSize="13" FontFamily="Microsoft YaHei"
+                               Foreground="#7A7C84" Text="修改部分版权：Copyright © 2026 Gekota Contributors"/>
 
-            <!-- 3 录制 -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <ui:PathIcon Style="{StaticResource PathIconDataRecordRec}" Width="20" Height="20"
-                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="3. 开始录制"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
-                               Text="主播开播后自动开始录制，无需手动操作"/>
-                </StackPanel>
-            </StackPanel>
+                    <TextBlock Margin="0,14,0,0" FontSize="14" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                               Text="特别鸣谢"/>
+                    <TextBlock Margin="0,8,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="· BililiveRecorder：录制核心与开源基础"/>
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="· DanmakuFactory：弹幕转换"/>
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="· ShanaEncoder：视频压制"/>
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="· biliup / biliup-rs：自动上传"/>
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#4C4E57"
+                               Text="· 枝江日程表：A-SOUL / 闪耀舞台日历数据"/>
 
-            <!-- 4 实时播放 -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <ui:PathIcon Style="{StaticResource PathIconDataPlayCircleOutline}" Width="20" Height="20"
-                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="4. 实时播放"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
-                               Text="在「实时播放」页面观看直播画面"/>
-                </StackPanel>
-            </StackPanel>
-
-            <!-- 5 切片 & 截屏（录播之后） -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <ui:PathIcon Style="{StaticResource PathIconDataContentCut}" Width="18" Height="18"
-                                     Foreground="Black"/>
-                        <ui:PathIcon Style="{StaticResource PathIconDataCamera}" Width="18" Height="18"
-                                     Foreground="Black" Margin="3,0,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="枝江日程表：" FontSize="13" FontFamily="Microsoft YaHei"
+                                   Foreground="#666870" VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" FontFamily="Microsoft YaHei"
+                                            Content="https://asoul.love/calendar"
+                                            NavigateUri="https://asoul.love/calendar"/>
                     </StackPanel>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="5. 切片 / 截屏"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
-                               Text="录播结束后，在「实时播放」页面右下角：✂ 剪切当前片段、📷 截取画面"/>
-                </StackPanel>
-            </StackPanel>
-
-            <!-- 6 弹幕转换 & 压制 -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <ui:PathIcon Style="{StaticResource PathIconDataMerge}" Width="18" Height="18"
-                                     Foreground="Black"/>
-                        <ui:PathIcon Style="{StaticResource PathIconDataToolboxOutline}" Width="18" Height="18"
-                                     Foreground="Black" Margin="3,0,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="原始项目：" FontSize="13" FontFamily="Microsoft YaHei"
+                                   Foreground="#666870" VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" FontFamily="Microsoft YaHei"
+                                            Content="https://github.com/BililiveRecorder/BililiveRecorder"
+                                            NavigateUri="https://github.com/BililiveRecorder/BililiveRecorder"/>
                     </StackPanel>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="6. 弹幕转换 / 视频压制"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
-                               Text="在「工具箱」中转换弹幕、压制视频"/>
                 </StackPanel>
-            </StackPanel>
+            </Border>
 
-            <!-- 7 自动上传 -->
-            <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Border Width="42" Height="42" CornerRadius="21" Background="#2AFFFFFF"
-                        BorderBrush="#44FFFFFF" BorderThickness="1">
-                    <ui:PathIcon Style="{StaticResource PathIconDataCloudCheckOutline}" Width="20" Height="20"
-                                 Foreground="Black" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                </Border>
-                <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                    <TextBlock FontSize="16" FontWeight="Bold" FontFamily="Microsoft YaHei" Text="7. 自动上传"/>
-                    <TextBlock FontSize="13" Foreground="#FF000000" FontFamily="Microsoft YaHei"
-                               Text="压制完成后自动投稿到 B 站"/>
+            <!-- 联系方式 -->
+            <Border Background="#0D000000" BorderBrush="#18000000" BorderThickness="1"
+                    CornerRadius="14" Padding="18,16" Margin="0,14,0,24">
+                <StackPanel>
+                    <TextBlock Text="联系方式" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <TextBlock Text="哔哩哔哩：" FontSize="14" FontFamily="Microsoft YaHei"
+                                   Foreground="#666870" VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" FontFamily="Microsoft YaHei"
+                                            Content="gua_02014"
+                                            NavigateUri="https://space.bilibili.com/26187233"/>
+                    </StackPanel>
+                    <TextBlock Margin="0,8,0,0" FontSize="13" FontFamily="Microsoft YaHei"
+                               TextWrapping="Wrap" Foreground="#888A92"
+                               Text="如有问题，请在项目仓库提交 Issue。"/>
                 </StackPanel>
-            </StackPanel>
-
-            <!-- 结尾 -->
-            <TextBlock Margin="0,32,0,0" FontSize="15" FontFamily="Microsoft YaHei" TextWrapping="Wrap"
-                       Foreground="#FF000000"
-                       Text="如果有问题，请点击「关于」页面（声明页）的联系方式。"/>
+            </Border>
 
         </StackPanel>
     </ScrollViewer>

@@ -28,6 +28,12 @@ namespace Gekota.WPF.Pages
             this.OptionsRoot.DataContext = this.Options;
         }
 
+        private void SaveSettings_Click(object sender, RoutedEventArgs e)
+        {
+            DanmakuConvertSettings.Save();
+            MessageBox.Show("弹幕转换设置已保存。", "弹幕转换", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         private void RemoveFile_Click(object sender, RoutedEventArgs e)
         {
             var b = (Button)sender;

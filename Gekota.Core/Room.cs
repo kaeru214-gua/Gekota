@@ -796,6 +796,19 @@ namespace Gekota.Core
                     this.logger.Debug(ex, "分发实时弹幕事件失败");
                 }
             }
+            else if (d.MsgType == Api.Danmaku.DanmakuMsgType.SuperChat &&
+                     !string.IsNullOrWhiteSpace(d.CommentText))
+            {
+                try
+                {
+                    this.DanmakuReceived?.Invoke(this, new RoomDanmakuEventArgs(
+                        d.CommentText!, d.UserName ?? "", d.UserID, true, d.Price, d.SCKeepTime));
+                }
+                catch (Exception ex)
+                {
+                    this.logger.Debug(ex, "分发实时 SC 事件失败");
+                }
+            }
 
             _ = Task.Run(async () => await this.basicDanmakuWriter.WriteAsync(d));
         }

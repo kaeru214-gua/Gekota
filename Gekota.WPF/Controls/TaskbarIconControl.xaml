@@ -26,6 +26,15 @@
             </ContextMenu>
         </tb:TaskbarIcon.ContextMenu>
         <tb:TaskbarIcon.TrayToolTip>
+            <ToolTip Background="Transparent"
+                     BorderThickness="0"
+                     Padding="0"
+                     HasDropShadow="False">
+                <ToolTip.Template>
+                    <ControlTemplate TargetType="ToolTip">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </ToolTip.Template>
             <Border
                 Background="#F8F8FA"
                 BorderBrush="#24000000"
@@ -91,6 +100,7 @@
                     </ItemsControl>
                 </Grid>
             </Border>
+            </ToolTip>
         </tb:TaskbarIcon.TrayToolTip>
     </tb:TaskbarIcon>
 </UserControl>

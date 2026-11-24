@@ -289,6 +289,11 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     var recorder = this.serviceProvider.GetRequiredService<IRecorder>();
 
                     this.Model.Recorder = recorder;
+                    RecordingModeSettings.ApplyTo(recorder);
+                    ((System.Collections.Specialized.INotifyCollectionChanged)recorder.Rooms).CollectionChanged += (s, e) =>
+                    {
+                        RecordingModeSettings.ApplyTo(recorder);
+                    };
                     this.DockHome.IsEnabled = true;
                     this.DockPlayback.IsEnabled = true;
                     this.DockSettings.IsEnabled = true;
@@ -333,17 +338,22 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                         await Task.Delay(150);
                         _ = this.Dispatcher.BeginInvoke(DispatcherPriority.Normal, method: new Action(() =>
                         {
-                            if (firstUse)
+                            if (firstUse || AnnouncementState.ShouldShowTutorial())
                             {
-                                this.NavigateToPage("AnnouncementPage");
-                                // 首次使用直接展示了公告页，不再额外弹窗
-                                AnnouncementState.MarkCurrentVersionShown();
+                                try
+                                {
+                                    var tutorial = new TutorialDialog
+                                    {
+                                        Owner = Application.Current.MainWindow,
+                                    };
+                                    tutorial.ShowDialog();
+                                }
+                                catch { }
+                                AnnouncementState.MarkTutorialShown();
                             }
-                            else
-                            {
-                                this.NavigateToPage("RoomListPage");
-                                _ = this.ShowUpdateNoticeOnceAsync();
-                            }
+
+                            this.NavigateToPage("RoomListPage");
+                            _ = this.ShowUpdateNoticeOnceAsync();
 
                             if (CommandArgumentHide)
                                 Application.Current.MainWindow.WindowState = WindowState.Minimized;
@@ -985,7 +995,28 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 // 取不到再用录制结束时记录的标题，避免用到房间当前的最新标题。
                 var titleFolder = Path.GetDirectoryName(flvPath) ?? string.Empty;
                 var folderTitle = Path.GetFileName(titleFolder);
-                var uploadTitle = !string.IsNullOrWhiteSpace(folderTitle) ? folderTitle : eventTitle;
+                var baseTitle = !string.IsNullOrWhiteSpace(folderTitle) ? folderTitle : eventTitle;
+                var uploadTitle = BiliUploadSettings.FormatVideoTitle(
+                    baseTitle, room.Name, room.RoomConfig.RoomId, openTime);
+
+                if (!BiliUploadOrchestrator.HasFangzhuang(flvPath))
+                {
+                    ui.Skip("当前直播间没有防撞视频，已跳过自动上传");
+                    logger.Information("[上传] 当前直播间没有防撞文件，跳过自动上传 {Flv}", flvPath);
+                    return;
+                }
+
+                UploadOverrides? overrides = null;
+                var metadata = UploadMetadataService.Resolve(room, baseTitle, Path.GetDirectoryName(titleFolder) ?? titleFolder);
+                if (metadata != null &&
+                    !string.IsNullOrWhiteSpace(metadata.BracketLabel))
+                {
+                    var title = $"【{room.Name}】{openTime:yyyy年MM月dd日}{uploadTitle}";
+                    title = title.Replace($"【{room.Name}】", $"【{metadata.BracketLabel}】");
+                    overrides = new UploadOverrides { Title = title };
+                    if (!string.IsNullOrWhiteSpace(metadata.Description)) overrides.Desc = metadata.Description;
+                    if (!string.IsNullOrWhiteSpace(metadata.Tags)) overrides.Tags = metadata.Tags;
+                }
 
                 var info = new RecordingInfo
                 {
@@ -1000,7 +1031,7 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 var filePct = new Progress<double>(p => ui.ReportFilePercent(p));
 
                 var bvid = await new BiliUploadOrchestrator()
-                    .UploadAsync(info, session.Cookie, stage, System.Threading.CancellationToken.None, null, filePct)
+                    .UploadAsync(info, session.Cookie, stage, System.Threading.CancellationToken.None, overrides, filePct)
                     .ConfigureAwait(false);
 
                 ui.Complete(bvid);

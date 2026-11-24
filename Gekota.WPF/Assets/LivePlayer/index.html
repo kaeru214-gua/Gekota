@@ -90,6 +90,15 @@
           <option value="0">关</option>
         </select>
       </label>
+      <label class="dm-check"><input id="dm-no-overlap" type="checkbox" checked> 弹幕不重合</label>
+      <label class="dm-check"><input id="dm-special" type="checkbox" checked> 特殊弹幕</label>
+      <label>SC 位置
+        <select id="dm-sc-side">
+          <option value="left">左下角</option>
+          <option value="right">右下角</option>
+        </select>
+      </label>
+      <label>SC 透明度 <input id="dm-sc-opacity" type="range" min="20" max="100" step="5" value="85"></label>
     </div>
     <div id="chat-list"></div>
     <div id="chat-compose">

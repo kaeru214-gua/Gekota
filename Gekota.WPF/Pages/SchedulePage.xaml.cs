@@ -41,6 +41,8 @@ namespace Gekota.WPF.Pages
 
         private static readonly Dictionary<string, Color> KnownThemes = new(StringComparer.OrdinalIgnoreCase)
         {
+            ["A-SOUL"] = Color.FromRgb(0xFC, 0x96, 0x6E),
+            ["闪耀舞台"] = Color.FromRgb(0x83, 0xBD, 0xF9),
             ["贝拉"] = Color.FromRgb(0xDB, 0x7D, 0x74),
             ["嘉然"] = Color.FromRgb(0xE7, 0x99, 0xB0),
             ["乃琳"] = Color.FromRgb(0x57, 0x66, 0x90),
@@ -64,6 +66,8 @@ namespace Gekota.WPF.Pages
             this.InitializeComponent();
             this.StreamerBar.ItemsSource = this.StreamerTiles;
             this.LoadSkips();
+            this.CalendarUrlBox.Text = ScheduleCalendarService.Url;
+            this.CalendarBar.Visibility = Visibility.Collapsed;
             this.refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
             this.refreshTimer.Tick += async (s, e) => await this.LoadReservationsAsync();
             this.Loaded += this.SchedulePage_Loaded;
@@ -314,8 +318,8 @@ namespace Gekota.WPF.Pages
 
             for (var day = 0; day < 7; day++)
             {
-                var host = new Grid { Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true };
                 var content = new Grid { Margin = new Thickness(5, 4, 5, 4) };
+                var host = new Grid { Margin = new Thickness(3, 0, 3, 0), ClipToBounds = true, Background = Brushes.Transparent };
                 host.Children.Add(content);
                 Grid.SetColumn(host, day);
                 this.WeekGrid.Children.Add(host);
@@ -330,6 +334,29 @@ namespace Gekota.WPF.Pages
         }
 
 #pragma warning disable VSTHRD100
+        private static bool IsCalendarArtist(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            return name.IndexOf("A-SOUL", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("闪耀舞台", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("枝江", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("贝拉", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("嘉然", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("乃琳", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("心宜", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                   name.IndexOf("思诺", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+
+#pragma warning disable VSTHRD100
+        private async void ImportCalendar_Click(object sender, RoutedEventArgs e)
+#pragma warning restore VSTHRD100
+        {
+            ScheduleCalendarService.SaveUrl(this.CalendarUrlBox.Text);
+            this.CalendarBar.Visibility = Visibility.Collapsed;
+            await this.LoadReservationsAsync();
+        }
+
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100
         {
@@ -366,8 +393,11 @@ namespace Gekota.WPF.Pages
             {
                 var rec = this.DataContext as IRecorder;
                 var rooms = rec?.Rooms.ToList() ?? new List<IRoom>();
-                var hasManagedRooms = rooms.Any(r => TargetNames.Any(n =>
-                    (r.Name ?? "").IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0));
+                var hasCalendarArtists = rooms.Any(r => IsCalendarArtist(r.Name));
+                this.CalendarBar.Visibility = hasCalendarArtists &&
+                    string.IsNullOrWhiteSpace(ScheduleCalendarService.Url)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
                 if (rooms.Count == 0)
                 {
                     this.ShowFailure("还没有添加主播，请先在首页添加直播间。");
@@ -396,6 +426,9 @@ namespace Gekota.WPF.Pages
 
                 foreach (var room in rooms)
                 {
+                    if (TargetNames.Any(n => (room.Name ?? "").IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0))
+                        continue; // 这五位只使用日历
+
                     var uid = ResolveUid(room);
                     if (uid <= 0) continue;
                     try
@@ -476,38 +509,35 @@ namespace Gekota.WPF.Pages
                 }
 
                 // 同一主播、同一开始时间只保留一条，防止重复预约动态。
+
+                var calendar = await ScheduleCalendarService.GetAsync(monday, end);
+                foreach (var item in calendar)
+                {
+                    var name = CanonicalName(item.RoomName);
+                    var key = ScheduleSkipPolicy.Key(name, item.Start);
+                    var theme = this.themeByRoom.TryGetValue(name, out var color) ? color : ResolveTheme(name, null);
+                    this.reservations.Add(new ReservationItem(
+                        item.Start, name, item.Title, key, theme, this.skippedKeys.Contains(key),
+                        cancelled: item.Title.IndexOf("取消", StringComparison.Ordinal) >= 0,
+                        isZhijiang: false, rawText: item.Raw));
+                }
+
+                var others = rooms.Where(r => !TargetNames.Any(n =>
+                    (r.Name ?? "").IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                var weibo = await WeiboScheduleService.GetAsync(others, monday, end);
+                foreach (var item in weibo)
+                {
+                    var name = CanonicalName(item.RoomName);
+                    var key = ScheduleSkipPolicy.Key(name, item.Start);
+                    var theme = this.themeByRoom.TryGetValue(name, out var color) ? color : ResolveTheme(name, null);
+                    this.reservations.Add(new ReservationItem(
+                        item.Start, name, item.Title, key, theme, this.skippedKeys.Contains(key),
+                        cancelled: false, isZhijiang: false, rawText: item.Raw));
+                }
+
                 var seenReservations = new HashSet<string>(StringComparer.Ordinal);
                 this.reservations.RemoveAll(r =>
                     !seenReservations.Add(CanonicalName(r.RoomName) + "|" + r.Start.ToString("yyyy-MM-dd HH:mm")));
-
-                if (hasManagedRooms)
-                {
-                    try
-                    {
-                        var official = await OfficialTextScheduleService.GetAsync();
-                        foreach (var officialEvent in official)
-                        {
-                            if (officialEvent.Start < monday || officialEvent.Start >= end) continue;
-                            var officialName = CanonicalName(officialEvent.RoomName);
-                            if (!TargetNames.Any(n =>
-                                    officialName.IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0)) continue;
-                            if (this.reservations.Any(r =>
-                                    CanonicalName(r.RoomName) == officialName &&
-                                    r.Start.Date == officialEvent.Start.Date))
-                                continue;
-                            var key = ScheduleSkipPolicy.Key(officialName, officialEvent.Start);
-                            var theme = this.themeByRoom.TryGetValue(officialName, out var officialTheme)
-                                ? officialTheme
-                                : Colors.White;
-                            this.reservations.Add(new ReservationItem(
-                                officialEvent.Start, officialName, officialEvent.Title,
-                                key, theme, this.skippedKeys.Contains(key),
-                                cancelled: officialEvent.Cancelled,
-                                isZhijiang: officialEvent.Source == "枝江娱乐官方"));
-                        }
-                    }
-                    catch { }
-                }
 
                 this.ApplyStableSchedule(monday, end);
                 this.RenderReservations();
@@ -549,6 +579,9 @@ namespace Gekota.WPF.Pages
             foreach (var old in previous.Where(p => p.Start >= monday && p.Start < end))
             {
                 var roomName = CanonicalName(old.RoomName);
+                // A-SOUL / 闪耀舞台 只认日历，不再沿用旧的 B 站动态快照。
+                if (TargetNames.Any(n => roomName.IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0))
+                    continue;
                 var candidate = fresh
                     .Where(r => CanonicalName(r.RoomName) == roomName && r.Start.Date == old.Start.Date)
                     .OrderBy(r => Math.Abs((r.Start - old.Start).TotalMinutes))
@@ -810,189 +843,129 @@ namespace Gekota.WPF.Pages
             }
         }
 
-        private static bool IsGroupDisplay(string name)
+        private static bool IsLight(Color color)
         {
-            return name.StartsWith("A-SOUL", StringComparison.OrdinalIgnoreCase) ||
-                   name.StartsWith("心宜思诺", StringComparison.Ordinal);
+            return (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) > 165;
         }
 
-        private static string CleanGroupName(string value)
+        private static (string Category, string Title) SplitCategoryTitle(string title)
         {
-            var text = Regex.Replace(value ?? "", @"[【】\[\]]", "");
-            text = Regex.Replace(text, @"\s+", "");
-            var cut = text.IndexOfAny(new[] { '@', '（', '(' });
-            if (cut > 0) text = text.Substring(0, cut);
-            var shi = text.IndexOf("是在", StringComparison.Ordinal);
-            if (shi > 0) text = text.Substring(0, shi);
-            return text.Trim(' ', '：', ':', '，', ',', ';', '；');
-        }
-
-        private static (string Name, string Title) FormatZhijiang(string name, string title, string raw)
-        {
-            raw = string.IsNullOrWhiteSpace(raw) ? (title ?? "") : raw;
-            var text = raw;
-
-            var group = Regex.Match(text,
-                @"[【\[]([^】\]]*(?:A-SOUL|心宜思诺)[^】\]]*)[】\]]",
-                RegexOptions.IgnoreCase);
-            if (group.Success)
-            {
-                name = CleanGroupName(group.Groups[1].Value);
-                var groupEnd = group.Index + group.Length;
-                var after = groupEnd < text.Length ? text.Substring(groupEnd) : "";
-                if (text.Contains("快乐分享大会")) title = "快乐分享大会";
-                else if (after.Contains("是在") || after.Contains("@")) title = "直播";
-                title = CleanGroupName(title);
-                if (string.IsNullOrWhiteSpace(title) || title == "直播") title = name;
-                return (name, title);
-            }
-
-            var asoul = Regex.Match(text, @"A-SOUL[^\n，,；;：:】@]*", RegexOptions.IgnoreCase);
-            if (asoul.Success)
-            {
-                var originalTitle = CleanGroupName(title);
-                name = CleanGroupName(asoul.Value);
-                title = CleanGroupName(title.Replace(asoul.Value, ""));
-                var at = title.IndexOf('@');
-                if (at > 0) title = title.Substring(0, at).Trim();
-                var shi = title.IndexOf("是在", StringComparison.Ordinal);
-                if (shi > 0) title = title.Substring(0, shi).Trim();
-                if (text.Contains("快乐分享大会")) title = "快乐分享大会";
-                else if (name.Contains("A-SOUL夜谈") && (title == name || string.IsNullOrWhiteSpace(title)))
-                    title = "快乐分享大会";
-                if (string.IsNullOrWhiteSpace(title) || title == "直播") title = originalTitle;
-                if (string.IsNullOrWhiteSpace(title) || title == "直播") title = name;
-                return (name, title);
-            }
-
-            var yidian = Regex.Match(text, @"心宜思诺[^\n，,；;：:】@]*");
-            if (yidian.Success)
-            {
-                var originalTitle = CleanGroupName(title);
-                name = CleanGroupName(yidian.Value);
-                title = CleanGroupName(title.Replace(yidian.Value, ""));
-                if (string.IsNullOrWhiteSpace(title) || title == "直播") title = originalTitle;
-                if (string.IsNullOrWhiteSpace(title) || title == "直播") title = name;
-                return (name, title);
-            }
-
-            var members = TargetNames.Where(n => text.Contains(n)).Distinct().ToList();
-            if (members.Count >= 2)
-            {
-                var owner = CanonicalName(name);
-                var other = members.FirstOrDefault(n => n != owner);
-                if (other != null) name = owner + "&" + other;
-            }
-
-            if (text.Contains("3D") && !title.StartsWith("【3D】", StringComparison.Ordinal))
-                title = "【3D】" + title;
-            else if (text.Contains("2D") && !title.StartsWith("【2D】", StringComparison.Ordinal))
-                title = "【2D】" + title;
-            else if (text.Contains("电台") && !title.StartsWith("【电台】", StringComparison.Ordinal))
-                title = "【电台】" + title;
-
-            return (name, string.IsNullOrWhiteSpace(title) ? "直播" : title);
+            var value = (title ?? "").Trim();
+            var match = Regex.Match(value, @"^[\s]*[【\[]([^】\]]+)[】\]]\s*(.*)$");
+            if (!match.Success) return ("", value);
+            var rest = match.Groups[2].Value.Trim();
+            return (match.Groups[1].Value.Trim(), string.IsNullOrWhiteSpace(rest) ? match.Groups[1].Value.Trim() : rest);
         }
 
         private Border CreateEventBlock(ReservationItem reservation)
         {
             var displayName = reservation.RoomName;
-            var displayTitle = reservation.Title;
-            if (reservation.IsZhijiang ||
-                (reservation.RawText ?? "").IndexOf("A-SOUL", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                (reservation.Title ?? "").IndexOf("A-SOUL", StringComparison.OrdinalIgnoreCase) >= 0)
-                (displayName, displayTitle) = FormatZhijiang(displayName, displayTitle, reservation.RawText);
-
             var theme = reservation.ThemeColor;
-            var hideTitle = IsGroupDisplay(displayName);
-            var background = reservation.Cancelled
-                ? Color.FromRgb(0xE4, 0xE4, 0xE8)
-                : reservation.Skipped
-                    ? Blend(Color.FromRgb(0xE7, 0xE7, 0xEA), theme, 0.30)
-                    : Color.FromArgb(0x66, theme.R, theme.G, theme.B);
-            var root = new Grid();
-            var titleLength = hideTitle ? 0 : (displayTitle ?? "").Length + (displayName ?? "").Length;
-            var headerSize = titleLength < 22 ? 24 : titleLength < 40 ? 21 : 18;
-            var titleSize = Math.Max(13, headerSize - 8);
-            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Top };
-            text.Children.Add(new TextBlock
+            var ended = reservation.Start < DateTime.Now;
+            var muted = reservation.Cancelled || ended;
+            var (category, title) = SplitCategoryTitle(reservation.Title);
+            var topColor = muted ? Color.FromRgb(0xB8, 0xB8, 0xC0) : theme;
+            var tagColor = muted ? Color.FromRgb(0x8E, 0x90, 0x98) : Blend(theme, Colors.Black, 0.34);
+            var bottomColor = muted ? Color.FromRgb(0xEF, 0xEF, 0xF2) : Blend(Colors.White, theme, 0.08);
+            var topText = muted ? Brushes.White : (IsLight(theme) ? new SolidColorBrush(Color.FromRgb(0x2F, 0x31, 0x39)) : Brushes.White);
+
+            var top = new Grid { Margin = new Thickness(10, 9, 10, 8) };
+            top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            top.ColumnDefinitions.Add(new ColumnDefinition());
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                var tag = new Border
+                {
+                    Background = new SolidColorBrush(tagColor),
+                    CornerRadius = new CornerRadius(7),
+                    Padding = new Thickness(9, 4, 9, 4),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Child = new TextBlock
+                    {
+                        Text = category,
+                        FontSize = 12,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = Brushes.White,
+                    },
+                };
+                top.Children.Add(tag);
+            }
+
+            var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
+            right.Children.Add(new TextBlock
             {
                 Text = reservation.Start.ToString("HH:mm"),
-                FontSize = headerSize,
+                FontSize = 19,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(reservation.Cancelled
-                    ? Color.FromRgb(0x8A, 0x8B, 0x92)
-                    : Color.FromRgb(0x2F, 0x33, 0x3D)),
-                TextAlignment = TextAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Foreground = topText,
+                HorizontalAlignment = HorizontalAlignment.Right,
             });
-            text.Children.Add(new TextBlock
+            right.Children.Add(new TextBlock
             {
                 Text = displayName,
-                FontSize = titleSize + 2,
+                FontSize = 13,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(reservation.Cancelled
-                    ? Color.FromRgb(0x8A, 0x8B, 0x92)
-                    : Color.FromRgb(0x3A, 0x3D, 0x47)),
-                TextWrapping = TextWrapping.Wrap,
-                TextAlignment = TextAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                Margin = new Thickness(0, 2, 0, 0),
+                Foreground = topText,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                TextAlignment = TextAlignment.Right,
             });
-            if (!hideTitle)
+            Grid.SetColumn(right, 1);
+            top.Children.Add(right);
+
+            var bottom = new StackPanel { Margin = new Thickness(10, 8, 10, 9) };
+            bottom.Children.Add(new TextBlock
             {
-                text.Children.Add(new TextBlock
+                Text = title,
+                FontSize = 12,
+                LineHeight = 17,
+                Foreground = new SolidColorBrush(muted ? Color.FromRgb(0x8A, 0x8B, 0x92) : Color.FromRgb(0x45, 0x47, 0x50)),
+                TextWrapping = TextWrapping.Wrap,
+            });
+            if (muted)
+            {
+                bottom.Children.Add(new TextBlock
                 {
-                    Text = displayTitle,
-                    FontSize = titleSize,
-                    LineHeight = titleSize + 5,
-                    Foreground = new SolidColorBrush(reservation.Cancelled
-                        ? Color.FromRgb(0x9A, 0x9B, 0xA2)
-                        : Color.FromRgb(0x55, 0x58, 0x62)),
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    Text = ended ? "已结束" : "已取消",
+                    FontSize = 10.5,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8B, 0x92)),
                     Margin = new Thickness(0, 4, 0, 0),
                 });
             }
-            if (reservation.Cancelled)
-            {
-                text.Children.Add(new TextBlock
-                {
-                    Text = "已取消",
-                    FontSize = 13,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8B, 0x92)),
-                    TextAlignment = TextAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    Margin = new Thickness(0, 5, 0, 0),
-                });
-            }
-            root.Children.Add(text);
 
+            var content = new Grid();
+            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var topHost = new Border { Background = new SolidColorBrush(topColor), CornerRadius = new CornerRadius(14, 14, 0, 0), Child = top };
+            var bottomHost = new Border { Background = new SolidColorBrush(bottomColor), CornerRadius = new CornerRadius(0, 0, 14, 14), Child = bottom };
+            Grid.SetRow(bottomHost, 1);
+            content.Children.Add(topHost);
+            content.Children.Add(bottomHost);
+
+            var root = new Grid();
+            root.Children.Add(content);
             var toggle = this.CreateSkipButton(reservation);
-            if (!reservation.Cancelled)
+            if (!muted)
+            {
                 root.Children.Add(toggle);
+                toggle.HorizontalAlignment = HorizontalAlignment.Center;
+                toggle.VerticalAlignment = VerticalAlignment.Center;
+                toggle.Margin = new Thickness(0);
+            }
 
             var block = new Border
             {
-                Background = new SolidColorBrush(background),
-                BorderBrush = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
+                Background = new SolidColorBrush(topColor),
                 CornerRadius = new CornerRadius(14),
-                Padding = new Thickness(9, 8, 9, 8),
-                Margin = new Thickness(0, 0, 0, 5),
+                Margin = new Thickness(0, 0, 0, 8),
                 ToolTip = reservation.Title,
                 Child = root,
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
-                    BlurRadius = 8,
-                    ShadowDepth = 1,
-                    Opacity = 0.10,
-                    Color = Colors.Black,
+                    BlurRadius = 9, ShadowDepth = 2, Opacity = 0.06, Color = Colors.Black,
                 },
             };
-            if (!reservation.Skipped && !reservation.Cancelled)
+            if (!reservation.Skipped && !muted)
             {
                 block.MouseEnter += (s, e) => toggle.Visibility = Visibility.Visible;
                 block.MouseLeave += (s, e) => toggle.Visibility = Visibility.Collapsed;

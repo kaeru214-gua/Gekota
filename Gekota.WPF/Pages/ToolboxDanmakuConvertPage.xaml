@@ -23,7 +23,8 @@
                    Text="使用 DanmakuFactory 将录播弹幕 XML 转换为 ASS 字幕"/>
         <StackPanel Grid.Row="2" Margin="5,5,5,0" HorizontalAlignment="Center" Orientation="Horizontal">
             <Button Margin="0,0,5,0" Content="添加文件" Click="AddFile_Click"/>
-            <Button Content="转换" Click="Convert_Click"/>
+            <Button Margin="0,0,5,0" Content="转换" Click="Convert_Click"/>
+            <Button Content="保存设置" Click="SaveSettings_Click"/>
         </StackPanel>
 
         <Grid Grid.Row="3" Margin="5">

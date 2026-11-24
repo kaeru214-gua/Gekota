@@ -256,6 +256,13 @@ namespace Gekota.WPF.Services
             return null;
         }
 
+        public static bool HasFangzhuang(string flvPath)
+        {
+            var dir = Path.GetDirectoryName(flvPath) ?? string.Empty;
+            var streamerFolder = Path.GetDirectoryName(dir) ?? dir;
+            return FindFangzhuang(streamerFolder) != null;
+        }
+
         private static string? FindFangzhuang(string folder)
         {
             try

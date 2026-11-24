@@ -47,6 +47,39 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="CalendarInputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="#F8FFFFFF" BorderBrush="#22000000"
+                                BorderThickness="1" CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="8,0" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CalendarButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{DynamicResource MacAccentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </ui:Page.Resources>
     <Grid Margin="0,24,24,24">
         <Grid.RowDefinitions>
@@ -162,7 +195,25 @@
         </Border>
 
         <!-- 周日程表 -->
-        <Border Grid.Row="1" Background="{DynamicResource MacDockBrush}" CornerRadius="21" Margin="0,24,0,0" Padding="16">
+        <!-- 日历链接 -->
+        <Border x:Name="CalendarBar" Grid.Row="1" VerticalAlignment="Center" Panel.ZIndex="80" Width="620" HorizontalAlignment="Center" Margin="16" Padding="12,10"
+                Background="#D9FFFFFF" CornerRadius="16"
+                BorderBrush="#28000000" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="日历链接" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+                <TextBox x:Name="CalendarUrlBox" Grid.Column="1" Margin="10,0,10,0"
+                         Style="{StaticResource CalendarInputStyle}"
+                         ToolTip="A-SOUL / 闪耀舞台日历 ICS 链接" />
+                <Button Grid.Column="2" Content="导入" Click="ImportCalendar_Click" Style="{StaticResource CalendarButtonStyle}" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Background="{DynamicResource MacDockBrush}" CornerRadius="21" Margin="0,12,0,0" Padding="16">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="30" Direction="270" ShadowDepth="6"
                                   Opacity="0.24" Color="#000000" />

@@ -26,6 +26,33 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Border Background="#F8FFFFFF"
+                                BorderBrush="#18000000"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <ContentPresenter ContentSource="Header"
+                                                  Margin="2,0,0,8"
+                                                  TextElement.FontSize="14"
+                                                  TextElement.FontWeight="SemiBold"
+                                                  TextElement.Foreground="#30313A" />
+                                <ContentPresenter Grid.Row="1" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </ui:Page.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
@@ -66,12 +93,24 @@
                 <Grid>
             <ScrollViewer x:Name="GeneralScroll"
                           d:DataContext="{d:DesignInstance Type=configv3:GlobalConfig}">
-        <ui:SimpleStackPanel Orientation="Vertical" Spacing="5" Margin="20">
+        <ui:SimpleStackPanel Orientation="Vertical" Spacing="8" Margin="20">
 
             <TextBlock Text="通用" FontSize="28" FontWeight="SemiBold" FontFamily="Microsoft Yahei" Margin="0,10"/>
+            <!-- ==================== 播放 / 录制模式 ==================== -->
+            <GroupBox Header="模式">
+                <StackPanel>
+                    <ui:ToggleSwitch x:Name="PlaybackModeToggle"
+                                     OnContent="播放模式" OffContent="播放模式"
+                                     Toggled="PlaybackModeToggle_Changed" />
+                    <ui:ToggleSwitch x:Name="RecordingModeToggle"
+                                     OnContent="录制模式" OffContent="录制模式"
+                                     Toggled="RecordingModeToggle_Changed" Margin="0,8,0,0" />
+                </StackPanel>
+            </GroupBox>
+
 
             <!-- ==================== 弹幕录制 ==================== -->
-            <GroupBox Header="弹幕录制">
+            <GroupBox Header="弹幕保存" Tag="recording">
                 <StackPanel>
                     <ui:ToggleSwitch IsOn="{Binding RecordDanmaku}"
                                      OnContent="保存弹幕" OffContent="保存弹幕"/>
@@ -88,8 +127,8 @@
                 </StackPanel>
             </GroupBox>
 
-            <!-- ==================== 录制模式 ==================== -->
-            <GroupBox Header="录制模式">
+            <!-- ==================== 录制格式 ==================== -->
+            <GroupBox Header="录制格式" Tag="recording">
                 <StackPanel>
                     <RadioButton GroupName="RecordMode" Content="标准模式"
                                  IsChecked="{Binding Path=RecordMode, Converter={StaticResource EnumToBooleanConverter},
@@ -101,9 +140,9 @@
             </GroupBox>
 
             <!-- ==================== 标准模式修复设置（仅标准模式显示） ==================== -->
-            <GroupBox Header="标准模式录制修复设置">
+            <GroupBox Header="录制修复（高级）" Tag="recording">
                 <GroupBox.Style>
-                    <Style TargetType="GroupBox">
+                    <Style TargetType="GroupBox" BasedOn="{StaticResource {x:Type GroupBox}}">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding RecordMode}" Value="RawData">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -120,7 +159,7 @@
             </GroupBox>
 
             <!-- ==================== 自动分段 ==================== -->
-            <GroupBox Header="自动分段">
+            <GroupBox Header="分段规则" Tag="recording">
                 <StackPanel>
                     <RadioButton GroupName="Splitting" Name="CutDisabledRadioButton" Content="不自动分段"
                                  IsChecked="{Binding Path=CuttingMode, Converter={StaticResource EnumToBooleanConverter},
@@ -146,20 +185,18 @@
                 </StackPanel>
             </GroupBox>
 
-            <!-- ==================== 直播封面 ==================== -->
-            <GroupBox Header="直播封面">
-                <ui:ToggleSwitch IsOn="{Binding SaveStreamCover}"
-                                 OnContent="录制时同时保存直播封面" OffContent="录制时同时保存直播封面"/>
-            </GroupBox>
-
-            <!-- ==================== 开播通知 ==================== -->
-            <GroupBox Header="开播通知">
-                <ui:ToggleSwitch IsOn="{Binding WpfNotifyStreamStart}"
-                                 OnContent="直播间开播时弹出系统通知" OffContent="直播间开播时弹出系统通知"/>
+            <!-- ==================== 录制行为 ==================== -->
+            <GroupBox Header="录制行为" Tag="recording">
+                <StackPanel>
+                    <ui:ToggleSwitch IsOn="{Binding SaveStreamCover}"
+                                     OnContent="录制时保存直播封面" OffContent="录制时保存直播封面"/>
+                    <ui:ToggleSwitch IsOn="{Binding WpfNotifyStreamStart}"
+                                     OnContent="开播时弹出系统通知" OffContent="开播时弹出系统通知"/>
+                </StackPanel>
             </GroupBox>
 
             <!-- ==================== 录制画质 ==================== -->
-            <GroupBox Header="录制画质">
+            <GroupBox Header="录制画质" Tag="recording">
                 <StackPanel>
                     <ComboBox x:Name="QualityComboBox"
                               Width="240" HorizontalAlignment="Left"
@@ -172,7 +209,7 @@
 
         
             <!-- ==================== 文件名 ==================== -->
-            <GroupBox Header="{l:Loc Settings_FileName_Title}">
+            <GroupBox Header="{l:Loc Settings_FileName_Title}" Tag="recording">
                 <StackPanel MaxWidth="450" HorizontalAlignment="Left">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -237,7 +274,7 @@
             </GroupBox>
 
             <!-- ==================== 录制结束后自动化 ==================== -->
-            <GroupBox Header="录制结束后自动化">
+            <GroupBox Header="录制结束后自动化" Tag="recording">
                 <StackPanel>
                     <CheckBox x:Name="AutoConvertCheckBox" Content="自动转换弹幕（XML → ASS）"
                               Checked="AutoConvertCheckBox_Changed" Unchecked="AutoConvertCheckBox_Changed"/>
@@ -245,6 +282,16 @@
                               Checked="AutoCompressCheckBox_Changed" Unchecked="AutoCompressCheckBox_Changed"/>
                     <CheckBox x:Name="AutoUploadCheckBox" Content="自动上传 B 站" Margin="0,7,0,0"
                               Checked="AutoUploadCheckBox_Changed" Unchecked="AutoUploadCheckBox_Changed"/>
+                    <StackPanel Margin="22,8,0,0">
+                        <TextBlock Text="自动上传视频标题" FontSize="12" FontWeight="SemiBold" />
+                        <TextBox x:Name="AutoUploadTitleTemplateBox" Margin="0,5,0,0"
+                                 Height="32" VerticalContentAlignment="Center"
+                                 MaxWidth="520" HorizontalAlignment="Left"
+                                 TextChanged="AutoUploadTitleTemplateBox_TextChanged"
+                                 ToolTip="可用占位符：{title} {streamer} {date} {time} {roomId}" />
+                        <TextBlock Margin="0,4,0,0" FontSize="11" Foreground="#888888"
+                                   Text="占位符：{title} 直播标题，{streamer} 主播名，{date} 日期，{time} 时间，{roomId} 房间号。默认 {title}。" />
+                    </StackPanel>
                 </StackPanel>
             </GroupBox>
 </ui:SimpleStackPanel>

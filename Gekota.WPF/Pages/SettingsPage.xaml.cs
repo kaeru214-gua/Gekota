@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
+using Gekota.Core;
 using Gekota.Core.Config.V3;
 using Gekota.Core.Scripting;
 using Gekota.Core.Templating;
@@ -69,6 +72,8 @@ namespace Gekota.WPF.Pages
         private bool suppressFileNameCheckBoxEvent;
         private bool initializingQuality;
         private bool initializingAutomation;
+        private bool initializingAutoRecord;
+        private bool initializingMode;
         private SkinPage? hostedSkinPage;
 
         public SettingsPage()
@@ -172,6 +177,7 @@ namespace Gekota.WPF.Pages
             this.InitializeFileNameTemplateUI();
             this.InitializeCookieUI();
             this.InitializeAutomationUI();
+            this.InitializeModeUI();
         }
 
         // ==================== 录制结束后自动化 ====================
@@ -183,12 +189,103 @@ namespace Gekota.WPF.Pages
                 this.AutoConvertCheckBox.IsChecked = DanmakuConvertSettings.Current.AutoConvertEnabled;
                 this.AutoCompressCheckBox.IsChecked = VideoCompressSettings.Current.AutoCompressEnabled;
                 this.AutoUploadCheckBox.IsChecked = BiliUploadSettings.AutoUploadEnabled;
+                this.AutoUploadTitleTemplateBox.Text = BiliUploadSettings.VideoTitleTemplate;
             }
             finally
             {
                 this.initializingAutomation = false;
             }
         }
+
+        private void InitializeModeUI()
+        {
+            this.initializingMode = true;
+            try
+            {
+                this.PlaybackModeToggle.IsOn = RecordingModeSettings.PlaybackModeEnabled;
+                this.RecordingModeToggle.IsOn = !RecordingModeSettings.PlaybackModeEnabled;
+            }
+            finally
+            {
+                this.initializingMode = false;
+            }
+            this.ApplyModeVisibility();
+        }
+
+        private void PlaybackModeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (this.initializingMode) return;
+            this.initializingMode = true;
+            try
+            {
+                if (this.PlaybackModeToggle.IsOn)
+                {
+                    this.RecordingModeToggle.IsOn = false;
+                    RecordingModeSettings.SetPlaybackMode(true, this.GetRecorder());
+                }
+                else
+                {
+                    this.RecordingModeToggle.IsOn = true;
+                    RecordingModeSettings.SetRecordingMode(true, this.GetRecorder());
+                }
+            }
+            finally
+            {
+                this.initializingMode = false;
+            }
+            this.ApplyModeVisibility();
+        }
+
+        private void RecordingModeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            if (this.initializingMode) return;
+            this.initializingMode = true;
+            try
+            {
+                if (this.RecordingModeToggle.IsOn)
+                {
+                    this.PlaybackModeToggle.IsOn = false;
+                    RecordingModeSettings.SetRecordingMode(true, this.GetRecorder());
+                }
+                else
+                {
+                    this.PlaybackModeToggle.IsOn = true;
+                    RecordingModeSettings.SetPlaybackMode(true, this.GetRecorder());
+                }
+            }
+            finally
+            {
+                this.initializingMode = false;
+            }
+            this.ApplyModeVisibility();
+        }
+
+        private IRecorder? GetRecorder() =>
+            RootPage.ServiceProvider?.GetService(typeof(IRecorder)) as IRecorder;
+
+        private void ApplyModeVisibility()
+        {
+            var recording = this.RecordingModeToggle.IsOn;
+            this.PlaybackModeToggle.Visibility = recording ? Visibility.Collapsed : Visibility.Visible;
+            foreach (var group in this.FindVisualChildren<GroupBox>(this.GeneralScroll))
+            {
+                if (string.Equals(group.Tag as string, "recording", StringComparison.Ordinal))
+                    group.Visibility = recording ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private IEnumerable<T> FindVisualChildren<T>(DependencyObject root) where T : DependencyObject
+        {
+            var count = VisualTreeHelper.GetChildrenCount(root);
+            for (var i = 0; i < count; i++)
+            {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is T match) yield return match;
+                foreach (var nested in this.FindVisualChildren<T>(child))
+                    yield return nested;
+            }
+        }
+
 
         private void AutoConvertCheckBox_Changed(object sender, RoutedEventArgs e)
         {
@@ -211,6 +308,12 @@ namespace Gekota.WPF.Pages
             if (this.initializingAutomation) return;
             if (this.AutoUploadCheckBox.IsChecked is not bool b) return;
             BiliUploadSettings.AutoUploadEnabled = b;
+        }
+
+        private void AutoUploadTitleTemplateBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (this.initializingAutomation) return;
+            BiliUploadSettings.VideoTitleTemplate = this.AutoUploadTitleTemplateBox.Text;
         }
 
         // ==================== 录制画质 ====================

@@ -75,8 +75,17 @@ namespace Gekota.WPF.Services
         public void Start()
         {
             if (this.listener != null) return;
-            this.listener = new TcpListener(IPAddress.Loopback, 0);
-            this.listener.Start();
+            // 固定端口，保证 WebView 的 localStorage（音量/弹幕设置）跨页面重建仍然有效。
+            try
+            {
+                this.listener = new TcpListener(IPAddress.Loopback, 38642);
+                this.listener.Start();
+            }
+            catch
+            {
+                this.listener = new TcpListener(IPAddress.Loopback, 0);
+                this.listener.Start();
+            }
             this.Port = ((IPEndPoint)this.listener.LocalEndpoint).Port;
             this.acceptTask = Task.Run(this.AcceptLoopAsync);
             logger.Information("[直播播放] 本机服务已启动 {Url}", this.BaseUrl);

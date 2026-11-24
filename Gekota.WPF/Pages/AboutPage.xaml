@@ -185,6 +185,20 @@
                             FontFamily="Microsoft YaHei"/>
                     </StackPanel>
 
+                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                        <Run Text="· "/>
+                        <Run Text="枝江日程表" FontWeight="Bold"/>
+                        <Run Text=" 的 A-SOUL / 闪耀舞台日历数据"/>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
+                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                                   VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0"
+                            Content="https://asoul.love/calendar"
+                            NavigateUri="https://asoul.love/calendar"
+                            FontFamily="Microsoft YaHei"/>
+                    </StackPanel>
+
                 </StackPanel>
 
                 <!-- ============ 联系方式 ============ -->

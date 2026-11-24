@@ -359,8 +359,25 @@
     <Compile Include="Pages\AdvancedSettingsPage.xaml.cs">
       <DependentUpon>AdvancedSettingsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Services\ScheduleCalendarService.cs" />
+    <Compile Include="Services\WeiboScheduleService.cs" />
+    <Page Include="Controls\TutorialDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Controls\TutorialDialog.xaml.cs">
+      <DependentUpon>TutorialDialog.xaml</DependentUpon>
+    </Compile>
+    <Page Include="Controls\ProfileEditDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Controls\ProfileEditDialog.xaml.cs">
+      <DependentUpon>ProfileEditDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Services\UploadMetadataService.cs" />
+    <Compile Include="Services\RecordingModeSettings.cs" />
     <Compile Include="Services\RecordingSegmentMerger.cs" />
-    <Compile Include="Services\OfficialTextScheduleService.cs" />
     <Compile Include="Services\BackgroundImageService.cs" />
     <Compile Include="Services\MoegirlThemeService.cs" />
     <Compile Include="Pages\DynamicsPage.xaml.cs">

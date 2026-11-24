@@ -1,5 +1,5 @@
 :root {
-  --gap: 24px;
+  --gap: 12px;
   --radius: 16px;
   --ink: #f5f5f7;
   --muted: #a7a7b0;
@@ -190,8 +190,160 @@ body {
 .cell-mute.muted .sound-off { display: block; }
 .empty b { color: var(--ink); font-size: 15px; }
 @media (max-width: 720px) {
-  .wall { padding: 10px; gap: 9px; }
-  .grid { padding: 10px; gap: 9px; }
-  .col { gap: 9px; }
+  .wall { padding: 24px 24px 24px 0; gap: 12px; }
+  .grid { padding: 24px 24px 24px 0; gap: 12px; }
+  .col { gap: 12px; }
   .cell { border-radius: 13px; }
+}
+
+/* 只保留滚动条滑块，隐藏白色轨道和上下按钮 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .26);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, .42);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+#chat-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .26) transparent;
+}
+/* 左侧直播列优先，右侧未开播固定 16:9 网格 */
+.live-col .cell video {
+  object-fit: cover;
+}
+.offline-col {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  align-content: center;
+  gap: var(--gap);
+}
+.offline-col .cell {
+  flex: none;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+/* 左侧直播 2×2 宫格；右侧未开播单列 */
+.live-grid {
+  flex: 2.2 1 0;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+  align-content: center;
+  gap: var(--gap);
+}
+.live-grid .cell {
+  min-height: 0;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.live-grid .cell video {
+  object-fit: cover;
+}
+.live-grid.live-count-3 .cell:nth-child(3) {
+  grid-column: 1 / -1;
+}
+.offline-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  gap: var(--gap);
+}
+.offline-col .cell {
+  flex: 1 1 0;
+  width: 100%;
+  aspect-ratio: auto;
+}
+/* 全部未开播时按数量使用 1/2/3/4/9 宫格 */
+.offline-wall {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 24px 24px 24px 0;
+  display: grid;
+  align-content: center;
+  justify-content: center;
+  gap: var(--gap);
+}
+.offline-wall .cell {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  flex: none;
+}
+/* 混合模式：右侧单列，按九宫格缩略图比例限制尺寸 */
+.offline-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.offline-col::-webkit-scrollbar { display: none; }
+.offline-col .cell {
+  flex: 0 0 auto;
+  width: min(100%, 28vh);
+  aspect-ratio: 16 / 9;
+}
+/* 内部铺满，只保留外层 24px 和卡片间 12px */
+.live-grid {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  align-content: stretch;
+  align-items: stretch;
+}
+.live-grid .cell {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  align-self: stretch;
+}
+.offline-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  overflow: hidden;
+}
+.offline-col .cell {
+  flex: 1 1 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+}
+.offline-wall .cell {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+}
+/* 直播画面完整显示，并用圆角裁剪整个卡片 */
+.cell {
+  overflow: hidden;
+  clip-path: inset(0 round var(--radius));
+}
+.live-grid .cell video,
+.cell video {
+  object-fit: contain;
+  border-radius: inherit;
 }

@@ -152,6 +152,8 @@
                                     <ui:PathIcon Style="{StaticResource PathIconDataCogOutline}"/>
                                 </MenuItem.Icon>
                             </MenuItem>
+                            <MenuItem Header="标签设置" Click="MenuItem_EditTags_Click"/>
+                            <MenuItem Header="编辑简介" Click="MenuItem_EditDescription_Click"/>
                             <MenuItem Header="全局设置" Click="MenuItem_ShowGlobalSettings_Click">
                                 <MenuItem.Icon>
                                     <ui:PathIcon Style="{StaticResource PathIconDataCogOutline}"/>

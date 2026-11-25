@@ -940,7 +940,8 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 if (room == null) continue;
                 var open = new DateTimeOffset(File.GetLastWriteTime(entry.BasePath));
                 BiliUploadQueue.Instance.Enqueue(() =>
-                    this.AutoUploadAfterRecordingAsync(entry.BasePath, room!, open, entry.Title));
+                    this.AutoUploadAfterRecordingAsync(entry.BasePath, room!, open, entry.Title,
+                        deleteFolder: false));
             }
         }
 
@@ -1072,21 +1073,45 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             var danmaku = Path.Combine(dir, name + "【弹幕版】." + ext);
             var key = Path.Combine(dir, name).ToLowerInvariant();
             var deadline = DateTime.UtcNow.AddHours(12);
+            var firstCheck = true;
 
             while (DateTime.UtcNow < deadline)
             {
-                if (HasUsableOutput(clean) && HasUsableOutput(danmaku)) return;
+                // 给刚加入的压制任务一点时间，避免上传先于压制启动。
+                if (firstCheck)
+                {
+                    firstCheck = false;
+                    await Task.Delay(1500).ConfigureAwait(false);
+                }
                 var targetQueued = CompressSession.Instance.Items.Any(x =>
                     Path.Combine(Path.GetDirectoryName(x.FilePath) ?? "",
                         Path.GetFileNameWithoutExtension(x.FilePath)).ToLowerInvariant() == key);
-                if (!targetQueued) return;
-                if (!CompressSession.Instance.IsBusy) return;
-                await Task.Delay(3000).ConfigureAwait(false);
+                var pending = CompressSession.Instance.Items
+                    .Where(x => Path.Combine(Path.GetDirectoryName(x.FilePath) ?? "",
+                        Path.GetFileNameWithoutExtension(x.FilePath)).ToLowerInvariant() == key)
+                    .Any(x => x.StatusText == "等待" || x.StatusText == "压制中");
+                if (pending)
+                {
+                    await Task.Delay(2000).ConfigureAwait(false);
+                    continue;
+                }
+                if (HasUsableOutput(clean) && HasUsableOutput(danmaku)) return;
+                if (!targetQueued)
+                {
+                    if (CompressSession.Instance.IsBusy)
+                    {
+                        await Task.Delay(1500).ConfigureAwait(false);
+                        continue;
+                    }
+                    return;
+                }
+                return;
             }
             logger.Warning("[上传] 等待压制超时，按现有文件继续尝试上传 {Flv}", flvPath);
         }
 
-        private async Task AutoUploadAfterRecordingAsync(string flvPath, IRoom room, DateTimeOffset openTime, string eventTitle)
+        private async Task AutoUploadAfterRecordingAsync(string flvPath, IRoom room,
+            DateTimeOffset openTime, string eventTitle, bool deleteFolder = true)
         {
             var ui = BiliUploadSession.Instance;
             try
@@ -1149,7 +1174,8 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 ui.Complete(bvid);
                 UploadHistoryStore.Mark(room.RoomConfig.RoomId, titleFolder,
                     Path.GetFileNameWithoutExtension(flvPath));
-                this.TryDeleteUploadedFolder(flvPath, room);
+                if (deleteFolder)
+                    this.TryDeleteUploadedFolder(flvPath, room);
                 logger.Information("[上传] 自动投稿成功 {Bvid}", bvid);
             }
             catch (VideoTooLargeException ex)
@@ -1180,6 +1206,15 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 if (!string.IsNullOrWhiteSpace(current) &&
                     string.Equals(Path.GetDirectoryName(current), folder, StringComparison.OrdinalIgnoreCase))
                     return;
+
+                // 同一标题文件夹里如果还有其他场次的视频，只删当前场次文件，不删整个目录。
+                var baseName = Path.GetFileNameWithoutExtension(flvPath);
+                var hasOtherSession = Directory.EnumerateFiles(folder)
+                    .Where(p => new[] { ".flv", ".mp4", ".mkv", ".ts" }
+                        .Contains(Path.GetExtension(p), StringComparer.OrdinalIgnoreCase))
+                    .Any(p => !Path.GetFileName(p).StartsWith(baseName, StringComparison.OrdinalIgnoreCase));
+                if (hasOtherSession) return;
+
                 Directory.Delete(folder, true);
                 logger.Information("[上传] 已删除已投稿场次文件夹 {Folder}", folder);
             }

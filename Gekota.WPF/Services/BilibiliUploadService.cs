@@ -125,9 +125,44 @@ namespace Gekota.WPF.Services
 
         // ==================== 上传一个视频 ====================
 
-        public async Task<(string filename, long cid)> UploadVideoAsync(string filePath, IProgress<double>? progress, CancellationToken ct)
+        private static async Task WaitForFileStableAsync(string filePath, CancellationToken ct)
         {
-            var name = Path.GetFileName(filePath);
+            long lastLength = -1;
+            var stableChecks = 0;
+            for (var attempt = 0; attempt < 120; attempt++)
+            {
+                ct.ThrowIfCancellationRequested();
+                var length = new FileInfo(filePath).Length;
+                if (length > 0 && length == lastLength) stableChecks++;
+                else stableChecks = 0;
+                lastLength = length;
+                if (stableChecks >= 2) return;
+                await Task.Delay(1500, ct).ConfigureAwait(false);
+            }
+            throw new IOException("文件大小持续变化，暂时无法上传：" + filePath);
+        }
+
+        private static async Task WaitForFileUnlockedAsync(string filePath, CancellationToken ct)
+        {
+            for (var attempt = 0; attempt < 1800; attempt++)
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    using var probe = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                        FileShare.Read);
+                    return;
+                }
+                catch (IOException)
+                {
+                    await Task.Delay(2000, ct).ConfigureAwait(false);
+                }
+            }
+            throw new IOException("文件仍被其他进程占用，暂时无法上传：" + filePath);
+        }
+
+        public async Task<(string filename, long cid)> UploadVideoAsync(string filePath, IProgress<double>? progress, CancellationToken ct)
+        {            var name = Path.GetFileName(filePath);
             var size = new FileInfo(filePath).Length;
 
             // B 站单文件上限 16GB，超过直接抛专用异常
@@ -155,6 +190,8 @@ namespace Gekota.WPF.Services
             var sem = new SemaphoreSlim(MaxConcurrentChunks);
             var tasks = new List<Task>();
 
+            await WaitForFileUnlockedAsync(filePath, ct).ConfigureAwait(false);
+            await WaitForFileStableAsync(filePath, ct).ConfigureAwait(false);
             using var fs = File.OpenRead(filePath);
             for (var chunk = 0; chunk < chunks; chunk++)
             {
@@ -505,6 +542,7 @@ namespace Gekota.WPF.Services
     /// <summary>断点续传状态存储（侧车 JSON）。</summary>
     internal static class ResumeStore
     {
+        private static readonly object WriteGate = new object();
         private static string StatePath(string filePath) => filePath + ".gekota.upload.json";
 
         public static UploadContext? Load(string filePath)
@@ -512,8 +550,11 @@ namespace Gekota.WPF.Services
             try
             {
                 var p = StatePath(filePath);
-                if (!File.Exists(p)) return null;
-                return JsonConvert.DeserializeObject<UploadContext>(File.ReadAllText(p));
+                lock (WriteGate)
+                {
+                    if (!File.Exists(p)) return null;
+                    return JsonConvert.DeserializeObject<UploadContext>(File.ReadAllText(p));
+                }
             }
             catch (Exception ex)
             {
@@ -524,8 +565,28 @@ namespace Gekota.WPF.Services
 
         public static void Save(string filePath, UploadContext ctx)
         {
-            try { File.WriteAllText(StatePath(filePath), JsonConvert.SerializeObject(ctx, Formatting.Indented)); }
-            catch (Exception ex) { Log.ForContext(typeof(ResumeStore)).Debug(ex, "[上传] 保存续传状态失败"); }
+            lock (WriteGate)
+            {
+                var p = StatePath(filePath);
+                var json = JsonConvert.SerializeObject(ctx, Formatting.Indented);
+                for (var attempt = 0; attempt < 8; attempt++)
+                {
+                    try
+                    {
+                        File.WriteAllText(p, json);
+                        return;
+                    }
+                    catch (IOException) when (attempt < 7)
+                    {
+                        System.Threading.Thread.Sleep(120);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.ForContext(typeof(ResumeStore)).Debug(ex, "[上传] 保存续传状态失败");
+                        return;
+                    }
+                }
+            }
         }
 
         public static void Delete(string filePath)

@@ -103,10 +103,9 @@ namespace Gekota.WPF.Services
             var mp4 = Path.ChangeExtension(videoPath, ".mp4");
             if (videoPath.EndsWith(".flv", StringComparison.OrdinalIgnoreCase) && File.Exists(mp4))
                 videoPath = mp4;
-            var key = NormalizedBase(videoPath);
-            if (this.Items.Any(x => string.Equals(NormalizedBase(x.FilePath), key,
-                                                StringComparison.OrdinalIgnoreCase) &&
-                                    string.Equals(x.SubtitlePath, subtitlePath, StringComparison.OrdinalIgnoreCase)))
+            var key = ItemKey(videoPath, subtitlePath);
+            if (this.Items.Any(x => string.Equals(ItemKey(x.FilePath, x.SubtitlePath), key,
+                                                StringComparison.OrdinalIgnoreCase)))
                 return;
             var item = new CompressFileItem(videoPath);
             if (!string.IsNullOrWhiteSpace(subtitlePath) && File.Exists(subtitlePath))
@@ -122,6 +121,20 @@ namespace Gekota.WPF.Services
         {
             var dir = Path.GetDirectoryName(path) ?? "";
             return Path.Combine(dir, Path.GetFileNameWithoutExtension(path)).ToLowerInvariant();
+        }
+
+        private static string ItemKey(string path, string? subtitle)
+            => NormalizedBase(path) + "|" + (string.IsNullOrWhiteSpace(subtitle) ? "clean" : "danmaku");
+
+        private void DeduplicateItems()
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in this.Items.ToList())
+            {
+                var key = ItemKey(item.FilePath, item.SubtitlePath);
+                if (seen.Add(key)) continue;
+                this.Items.Remove(item);
+            }
         }
 
         /// <summary>恢复上次异常退出时尚未完成的压制任务。</summary>
@@ -181,6 +194,7 @@ namespace Gekota.WPF.Services
             lock (sync)
             {
                 if (running) return;
+                DeduplicateItems();
                 if (this.Items.All(x => x.StatusText == "完成" || x.StatusText == "失败")) return;
 
                 running = true;

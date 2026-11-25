@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Serilog;
 
 #nullable enable
@@ -29,8 +30,12 @@ namespace Gekota.WPF.Services
             try
             {
                 if (!File.Exists(FilePath)) return Array.Empty<(string, string?)>();
-                var list = JsonConvert.DeserializeObject<List<Entry>>(File.ReadAllText(FilePath))
-                           ?? new List<Entry>();
+                var token = JToken.Parse(File.ReadAllText(FilePath));
+                var list = token is JArray array
+                    ? array.ToObject<List<Entry>>() ?? new List<Entry>()
+                    : token.ToObject<Entry>() is { } single
+                        ? new List<Entry> { single }
+                        : new List<Entry>();
                 // 同一录制可能同时记录了 flv 和转封装后的 mp4，优先保留 mp4，避免重复压制。
                 return list.Where(x => File.Exists(x.Input))
                     .Select(x => new Entry
@@ -53,7 +58,7 @@ namespace Gekota.WPF.Services
         private static string NormalizedKey(string input, string? subtitle)
             => Path.Combine(Path.GetDirectoryName(input) ?? "",
                    Path.GetFileNameWithoutExtension(input)).ToLowerInvariant() +
-               "|" + (subtitle ?? "").ToLowerInvariant();
+               "|" + (string.IsNullOrWhiteSpace(subtitle) ? "clean" : "danmaku");
 
         private static string PreferMp4(string input)
         {

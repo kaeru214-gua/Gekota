@@ -71,8 +71,7 @@ namespace Gekota.Core
                     var timeText = key.Substring(split + 1);
                     if (!timeText.StartsWith(date + " ", StringComparison.Ordinal)) continue;
                     if (!RoomMatches(keyRoom, roomName)) continue;
-                    if (DateTime.TryParse(timeText, out var start) &&
-                        Math.Abs((when - start).TotalMinutes) <= 90)
+                    if (DateTime.TryParse(timeText, out _))
                         return true;
                 }
             }

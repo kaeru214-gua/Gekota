@@ -332,9 +332,11 @@ namespace Gekota.Core
                 this.Title = room.Room.Title;
                 this.AreaNameParent = room.Room.ParentAreaName;
                 this.AreaNameChild = room.Room.AreaName;
-                this.Streaming = room.Room.LiveStatus == 1;
 
+                // 先更新主播名再更新开播状态：Streaming 变化会触发自动录制，
+                // 此时必须已经能按主播名匹配日程跳过。
                 this.Name = room.User.BaseInfo.Name;
+                this.Streaming = room.Room.LiveStatus == 1;
 
                 this.RawBilibiliApiJsonData = room.RawBilibiliApiJsonData;
 
@@ -375,6 +377,9 @@ namespace Gekota.Core
             lock (this.recordStartLock)
             {
                 if (this.disposedValue)
+                    return;
+
+                if (string.IsNullOrWhiteSpace(this.Name))
                     return;
 
                 if (ScheduleSkipPolicy.IsSkipped(this.Name, DateTime.Now))

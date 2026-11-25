@@ -35,6 +35,7 @@ namespace Gekota.WPF
 #endif
 
             this.InitializeComponent();
+            this.Loaded += (s, e) => WindowEffects.RemoveBorder(this);
             this.ApplyResponsiveWindowSize();
             this.SizeChanged += (s, e) => this.ApplyUiScale();
             this.ApplyUiScale();
@@ -45,25 +46,26 @@ namespace Gekota.WPF
         private void ApplyResponsiveWindowSize()
         {
             var work = SystemParameters.WorkArea;
-            // 1080p 使用 1152×768；高分辨率按比例放大，4K 上限 1800×1200。
-            var scale = Math.Max(1.0, Math.Min(work.Width / 1920.0, work.Height / 1080.0));
-            var width = Math.Min(1800.0, 1152.0 * scale);
+
+            // 初始窗口按当前显示器工作区的 84% 计算，并保持 3:2；
+            // 分辨率越高窗口越大，小屏幕则自动收缩，避免越界。
+            var width = work.Width * 0.84;
             var height = width * 2.0 / 3.0;
+            var maxHeight = work.Height * 0.84;
+            if (height > maxHeight)
+            {
+                height = maxHeight;
+                width = height * 3.0 / 2.0;
+            }
+
+            width = Math.Max(960.0, Math.Min(1800.0, width));
+            height = width * 2.0 / 3.0;
             if (height > 1200.0)
             {
                 height = 1200.0;
                 width = 1800.0;
             }
-            if (width > work.Width * 0.84)
-            {
-                width = work.Width * 0.84;
-                height = width * 2.0 / 3.0;
-            }
-            if (height > work.Height * 0.84)
-            {
-                height = work.Height * 0.84;
-                width = height * 3.0 / 2.0;
-            }
+
             this.Width = Math.Max(600.0, width);
             this.Height = Math.Max(400.0, height);
         }
@@ -71,6 +73,18 @@ namespace Gekota.WPF
         private void ApplyUiScale()
         {
             if (this.RootPage == null || this.ActualWidth <= 0 || this.ActualHeight <= 0) return;
+
+            if (this.WindowState == WindowState.Maximized)
+            {
+                // 最大化时铺满工作区，不再按 3:2 等比缩放而留下左右空白。
+                this.RootPage.Width = Math.Max(600, this.ActualWidth);
+                this.RootPage.Height = Math.Max(400, this.ActualHeight);
+                this.RootPage.LayoutTransform = Transform.Identity;
+                return;
+            }
+
+            this.RootPage.Width = 1152;
+            this.RootPage.Height = 768;
             var scale = Math.Min(this.ActualWidth / 1152.0, this.ActualHeight / 768.0);
             if (scale <= 0 || double.IsNaN(scale)) return;
             this.RootPage.LayoutTransform = new ScaleTransform(scale, scale);
@@ -380,6 +394,7 @@ namespace Gekota.WPF
             }
             else
             {
+                try { VideoCompressService.Shutdown(); } catch { }
                 SingleInstance.NotificationReceived -= this.SingleInstance_NotificationReceived;
                 Log.Logger.ForContext<NewMainWindow>().Debug("Window Closing");
                 NativeBeforeWindowClose?.Invoke(this, EventArgs.Empty);

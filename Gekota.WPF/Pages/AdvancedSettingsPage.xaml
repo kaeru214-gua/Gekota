@@ -34,7 +34,7 @@
     </ui:Page.Resources>
     <ScrollViewer d:DataContext="{d:DesignInstance Type=configv3:GlobalConfig}">
         <ui:SimpleStackPanel Orientation="Vertical" Spacing="5" Margin="20">
-            <TextBlock Text="{l:Loc Settings_AdvancedPage_Title}" Style="{StaticResource TitleTextBlockStyle}" FontFamily="Microsoft YaHei" Margin="0,10"/>
+            <TextBlock Text="{l:Loc Settings_AdvancedPage_Title}" Style="{StaticResource TitleTextBlockStyle}" FontFamily="{DynamicResource MacFontFamily}" Margin="0,10"/>
             <TextBlock Text="{l:Loc Settings_AdvancedPage_Warning}"/>
             <TextBlock TextWrapping="Wrap" Text="所有高级设置项目均不是录播姬的“正式功能”，它们的作用是便于 power users 在不修改录播姬源码重新编译的情况下深度调整录播姬的行为。请根据个人实际需求谨慎使用高级设置，不要随意修改。"/>
             <GroupBox Header="{l:Loc Settings_Danmaku_Title}">

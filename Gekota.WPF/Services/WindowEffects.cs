@@ -32,6 +32,7 @@ namespace Gekota.WPF.Services
 
                 ApplyDarkMode(hwnd, dark);
                 ApplyRoundedCorners(hwnd);
+                RemoveWindowBorder(hwnd);
 
                 if (!acrylic)
                 {
@@ -91,6 +92,7 @@ namespace Gekota.WPF.Services
             {
                 var hwnd = new WindowInteropHelper(window).Handle;
                 if (hwnd == IntPtr.Zero) return;
+                RemoveWindowBorder(hwnd);
 
                 var policy = new AccentPolicy { AccentState = AccentDisabled };
                 var size = Marshal.SizeOf<AccentPolicy>();
@@ -173,9 +175,64 @@ namespace Gekota.WPF.Services
                 // DWMWA_WINDOW_CORNER_PREFERENCE = 33, DWMWCP_ROUND = 2
                 var preference = 2;
                 DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+                RemoveWindowBorder(hwnd);
             }
             catch { }
         }
+
+        /// <summary>去掉 Win11 DWM 在无边框窗口外沿绘制的一圈浅色边。</summary>
+        /// <summary>窗口显示后再次去掉原生外框，防止 WPF 重新恢复 thick frame。</summary>
+        public static void RemoveBorder(Window window)
+        {
+            try
+            {
+                var hwnd = new WindowInteropHelper(window).Handle;
+                if (hwnd != IntPtr.Zero) RemoveWindowBorder(hwnd);
+            }
+            catch { }
+        }
+
+        private static void RemoveWindowBorder(IntPtr hwnd)
+        {
+            try
+            {
+                if (IsWindows11OrGreater)
+                {
+                    // DWMWA_BORDER_COLOR = 34, DWMWA_COLOR_NONE = 0xFFFFFFFE
+                    var none = unchecked((int)0xFFFFFFFE);
+                    DwmSetWindowAttribute(hwnd, 34, ref none, sizeof(int));
+                }
+
+                // 关闭非客户区渲染，Windows 10 上这会去掉窗口外沿的浅色描边/阴影。
+                var ncPolicy = 1; // DWMNCRP_DISABLED
+                DwmSetWindowAttribute(hwnd, 2, ref ncPolicy, sizeof(int));
+
+                // Windows 10/11 无边框窗口仍可能带原生 thick frame，
+                // 会在四周画出一圈浅灰边，直接去掉。
+                const int GWL_STYLE = -16;
+                const int WS_THICKFRAME = 0x00040000;
+                const int WS_BORDER = 0x00800000;
+                const int WS_DLGFRAME = 0x00400000;
+                var style = GetWindowLong(hwnd, GWL_STYLE);
+                style &= ~(WS_THICKFRAME | WS_BORDER | WS_DLGFRAME);
+                SetWindowLong(hwnd, GWL_STYLE, style);
+
+                const int GWL_EXSTYLE = -20;
+                const int WS_EX_DLGMODALFRAME = 0x00000001;
+                const int WS_EX_WINDOWEDGE = 0x00000100;
+                const int WS_EX_CLIENTEDGE = 0x00000200;
+                var exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+                exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE);
+                SetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+            }
+            catch { }
+        }
+
+        [DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
         private static int ToAbgr(Color c) => (c.A << 24) | (c.B << 16) | (c.G << 8) | c.R;
 

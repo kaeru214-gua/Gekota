@@ -34,9 +34,9 @@
                                RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Gekota" FontSize="52" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
-                        <TextBlock Text="你的哔哩哔哩录播切片小助手" FontSize="16" Foreground="#888888"
-                                   FontFamily="Microsoft YaHei" Margin="2,8,0,0"/>
+                        <TextBlock Text="Gekota" FontSize="52" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"/>
+                        <TextBlock Text="你的哔哩哔哩录播切片小助手" FontSize="16" Foreground="{DynamicResource MacTextSecondaryBrush}"
+                                   FontFamily="{DynamicResource MacFontFamily}" Margin="2,8,0,0"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -97,7 +97,7 @@
 
                 <!-- ============ 版本 + 版权 ============ -->
                 <StackPanel Margin="0,35,0,0">
-                    <TextBlock FontSize="18" FontFamily="Microsoft YaHei">
+                    <TextBlock FontSize="18" FontFamily="{DynamicResource MacFontFamily}">
                         <TextBlock.Text>
                             <MultiBinding Converter="{l:StringFormatConverter}">
                                 <l:BLoc Key="About_Version"/>
@@ -107,13 +107,13 @@
                     </TextBlock>
 
                     <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                        <TextBlock FontSize="18" FontFamily="Microsoft YaHei" Text="版权所有"/>
-                        <TextBlock FontSize="18" FontFamily="Microsoft YaHei" x:Name="CopyrightTextBlock"/>
+                        <TextBlock FontSize="18" FontFamily="{DynamicResource MacFontFamily}" Text="版权所有"/>
+                        <TextBlock FontSize="18" FontFamily="{DynamicResource MacFontFamily}" x:Name="CopyrightTextBlock"/>
                     </StackPanel>
 
-                    <TextBlock FontSize="18" FontFamily="Microsoft YaHei" Margin="0,5,0,0"
+                    <TextBlock FontSize="18" FontFamily="{DynamicResource MacFontFamily}" Margin="0,5,0,0"
                                Text="本软件为免费软件。"/>
-                    <TextBlock FontSize="18" FontFamily="Microsoft YaHei" Margin="0,5,0,0"
+                    <TextBlock FontSize="18" FontFamily="{DynamicResource MacFontFamily}" Margin="0,5,0,0"
                                Text="本软件仅供学习交流使用，禁止用于任何商业用途。"/>
                 </StackPanel>
 
@@ -121,145 +121,145 @@
                 <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
                     <Button Content="检查更新" Click="CheckUpdate_Click" Padding="12,5"/>
                     <TextBlock x:Name="UpdateStatusText" VerticalAlignment="Center" Margin="14,0,0,0"
-                               Foreground="#888888" TextWrapping="Wrap" MaxWidth="620"
+                               Foreground="{DynamicResource MacTextSecondaryBrush}" TextWrapping="Wrap" MaxWidth="620"
                                Cursor="Hand" MouseLeftButtonUp="UpdateStatusText_MouseLeftButtonUp"/>
                 </StackPanel>
 
                 <!-- ============ 特别鸣谢 ============ -->
-                <TextBlock Text="特别鸣谢" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                <TextBlock Text="特别鸣谢" FontSize="26" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"
                            Margin="0,40,0,15"/>
                 <StackPanel>
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei">
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}">
                         <Run Text="· "/>
                         <Run Text="mikufans 录播姬" FontWeight="Bold"/>
                         <Run Text=" 的开源支持"/>
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Margin="18,8,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="项目地址："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://github.com/BililiveRecorder/BililiveRecorder"
                             NavigateUri="https://github.com/BililiveRecorder/BililiveRecorder"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
 
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Margin="0,14,0,0">
                         <Run Text="· "/>
                         <Run Text="DanmakuFactory" FontWeight="Bold"/>
                         <Run Text=" 的弹幕转换"/>
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="项目地址："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://github.com/hihkm/DanmakuFactory"
                             NavigateUri="https://github.com/hihkm/DanmakuFactory"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
 
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Margin="0,14,0,0">
                         <Run Text="· "/>
                         <Run Text="ShanaEncoder" FontWeight="Bold"/>
                         <Run Text=" 的视频压制"/>
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="项目地址："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://shana.pe.kr/"
                             NavigateUri="https://shana.pe.kr/"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
 
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Margin="0,14,0,0">
                         <Run Text="· "/>
                         <Run Text="biliup / biliup-rs" FontWeight="Bold"/>
                         <Run Text=" 的自动上传"/>
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="项目地址："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://github.com/biliup/biliup-rs"
                             NavigateUri="https://github.com/biliup/biliup-rs"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
 
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,14,0,0">
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Margin="0,14,0,0">
                         <Run Text="· "/>
                         <Run Text="枝江日程表" FontWeight="Bold"/>
                         <Run Text=" 的 A-SOUL / 闪耀舞台日历数据"/>
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="项目地址："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="项目地址："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://asoul.love/calendar"
                             NavigateUri="https://asoul.love/calendar"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
 
                 </StackPanel>
 
                 <!-- ============ 联系方式 ============ -->
-                <TextBlock Text="联系方式" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                <TextBlock Text="联系方式" FontSize="26" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"
                            Margin="0,40,0,15"/>
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="哔哩哔哩："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="哔哩哔哩："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0" Content="gua_02014"
                             NavigateUri="https://space.bilibili.com/26187233"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="18,8,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="主页："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="主页："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://space.bilibili.com/26187233"
                             NavigateUri="https://space.bilibili.com/26187233"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- ============ 开源许可 ============ -->
-                <TextBlock Text="开源许可" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                <TextBlock Text="开源许可" FontSize="26" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"
                            Margin="0,40,0,15"/>
                 <StackPanel>
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" TextWrapping="Wrap">
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" TextWrapping="Wrap">
                         <Run Text="本项目基于 "/>
                         <Run Text="BililiveRecorder（录播姬）" FontWeight="Bold"/>
                         <Run Text=" 修改而来，遵循 "/>
                         <Run Text="GNU General Public License v3.0" FontWeight="Bold"/>
                         <Run Text=" 协议开源。"/>
                     </TextBlock>
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,10,0,0"
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Margin="0,10,0,0"
                                Text="原始版权：Copyright © 2018-2026 Genteure"/>
-                    <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Margin="0,4,0,0"
+                    <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Margin="0,4,0,0"
                                Text="修改部分版权：Copyright © 2026 Gekota Contributors"/>
-                    <TextBlock FontSize="14" FontFamily="Microsoft YaHei" Margin="0,10,0,0" TextWrapping="Wrap"
-                               Foreground="#888888"
+                    <TextBlock FontSize="14" FontFamily="{DynamicResource MacFontFamily}" Margin="0,10,0,0" TextWrapping="Wrap"
+                               Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="遵循 GPL-3.0：可自由使用、修改、分发，但衍生作品须同样以 GPL-3.0 协议开源，并保留原始版权声明。"/>
                     <StackPanel Orientation="Horizontal" Margin="18,10,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="原始项目："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="原始项目："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://github.com/BililiveRecorder/BililiveRecorder"
                             NavigateUri="https://github.com/BililiveRecorder/BililiveRecorder"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="18,4,0,0">
-                        <TextBlock FontSize="16" FontFamily="Microsoft YaHei" Text="许可证全文："
+                        <TextBlock FontSize="16" FontFamily="{DynamicResource MacFontFamily}" Text="许可证全文："
                                    VerticalAlignment="Center"/>
                         <ui:HyperlinkButton Padding="0"
                             Content="https://www.gnu.org/licenses/gpl-3.0.txt"
                             NavigateUri="https://www.gnu.org/licenses/gpl-3.0.txt"
-                            FontFamily="Microsoft YaHei"/>
+                            FontFamily="{DynamicResource MacFontFamily}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- ============ 使用的库 ============ -->
-                <TextBlock Text="使用的库" FontSize="26" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                <TextBlock Text="使用的库" FontSize="26" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"
                            Margin="0,40,0,15" Visibility="Collapsed"/>
                 <ListView MaxHeight="400" BorderThickness="0" Background="Transparent" Visibility="Collapsed">
                     <ListView.Items>

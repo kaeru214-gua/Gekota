@@ -2,11 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Gekota.Core;
+using Newtonsoft.Json;
 
 #nullable enable
 namespace Gekota.WPF.Services
@@ -17,6 +21,7 @@ namespace Gekota.WPF.Services
         public DateTime Start { get; set; }
         public string Title { get; set; } = "";
         public string Raw { get; set; } = "";
+        public bool Cancelled { get; set; }
     }
 
     /// <summary>导入 A-SOUL / 闪耀舞台日历（ICS）。</summary>
@@ -25,7 +30,14 @@ namespace Gekota.WPF.Services
         private static readonly string ConfigPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Gekota", "schedule_calendar.txt");
+        private static readonly string CachePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Gekota", "schedule_calendar_cache.ics");
+        private static readonly string MetaPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Gekota", "schedule_calendar_cache.json");
         private static readonly HttpClient http = CreateHttpClient();
+        private static readonly SemaphoreSlim Gate = new SemaphoreSlim(1, 1);
 
         public static string Url
         {
@@ -54,17 +66,112 @@ namespace Gekota.WPF.Services
             if (url.StartsWith("webcal://", StringComparison.OrdinalIgnoreCase))
                 url = "https://" + url.Substring("webcal://".Length);
 
+            await Gate.WaitAsync().ConfigureAwait(false);
             try
             {
-                using var response = await http.GetAsync(url).ConfigureAwait(false);
+                var meta = LoadMeta();
+                var cached = File.Exists(CachePath) ? File.ReadAllText(CachePath) : "";
+                var cacheUsable = !string.IsNullOrWhiteSpace(cached) &&
+                                  string.Equals(meta.Url, url, StringComparison.OrdinalIgnoreCase);
+                if (cacheUsable && DateTime.UtcNow - meta.FetchedUtc < TimeSpan.FromMinutes(30))
+                    return Parse(cached, start, end);
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                if (cacheUsable && !string.IsNullOrWhiteSpace(meta.ETag))
+                    request.Headers.TryAddWithoutValidation("If-None-Match", meta.ETag);
+                if (cacheUsable && meta.LastModified != default)
+                    request.Headers.IfModifiedSince = meta.LastModified;
+
+                using var response = await http.SendAsync(request).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotModified && cacheUsable)
+                {
+                    meta.FetchedUtc = DateTime.UtcNow;
+                    SaveMeta(meta);
+                    return Parse(cached, start, end);
+                }
                 response.EnsureSuccessStatusCode();
                 var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var hash = Hash(text);
+                if (cacheUsable && string.Equals(hash, meta.Hash, StringComparison.OrdinalIgnoreCase))
+                {
+                    meta.FetchedUtc = DateTime.UtcNow;
+                    meta.ETag = response.Headers.ETag?.Tag ?? meta.ETag;
+                    meta.LastModified = response.Content.Headers.LastModified?.UtcDateTime ?? meta.LastModified;
+                    SaveMeta(meta);
+                    return Parse(cached, start, end);
+                }
+
+                WriteCache(text);
+                SaveMeta(new CacheMeta
+                {
+                    Url = url,
+                    ETag = response.Headers.ETag?.Tag ?? "",
+                    LastModified = response.Content.Headers.LastModified?.UtcDateTime ?? default,
+                    FetchedUtc = DateTime.UtcNow,
+                    Hash = hash,
+                });
                 return Parse(text, start, end);
             }
             catch
             {
+                try
+                {
+                    var cached = File.Exists(CachePath) ? File.ReadAllText(CachePath) : "";
+                    if (!string.IsNullOrWhiteSpace(cached)) return Parse(cached, start, end);
+                }
+                catch { }
                 return Array.Empty<CalendarScheduleEvent>();
             }
+            finally
+            {
+                Gate.Release();
+            }
+        }
+
+        private sealed class CacheMeta
+        {
+            public string Url { get; set; } = "";
+            public string ETag { get; set; } = "";
+            public DateTime LastModified { get; set; }
+            public DateTime FetchedUtc { get; set; }
+            public string Hash { get; set; } = "";
+        }
+
+        private static CacheMeta LoadMeta()
+        {
+            try
+            {
+                return File.Exists(MetaPath)
+                    ? JsonConvert.DeserializeObject<CacheMeta>(File.ReadAllText(MetaPath)) ?? new CacheMeta()
+                    : new CacheMeta();
+            }
+            catch { return new CacheMeta(); }
+        }
+
+        private static void SaveMeta(CacheMeta meta)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(MetaPath)!);
+                File.WriteAllText(MetaPath, JsonConvert.SerializeObject(meta, Formatting.Indented));
+            }
+            catch { }
+        }
+
+        private static void WriteCache(string text)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);
+                File.WriteAllText(CachePath, text, new UTF8Encoding(false));
+            }
+            catch { }
+        }
+
+        private static string Hash(string text)
+        {
+            using var sha = SHA256.Create();
+            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(text ?? "")));
         }
 
         private static List<CalendarScheduleEvent> Parse(string ics, DateTime start, DateTime end)
@@ -116,6 +223,9 @@ namespace Gekota.WPF.Services
                         break;
                     case "LOCATION":
                         location = value;
+                        break;
+                    case "STATUS":
+                        current.Cancelled = value.IndexOf("CANCEL", StringComparison.OrdinalIgnoreCase) >= 0;
                         break;
                 }
             }

@@ -20,7 +20,7 @@
         <Grid x:Name="NotLoggedInPanel">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="哔哩哔哩扫码登录" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center"/>
-                <TextBlock Text="打开哔哩哔哩手机客户端，扫描下方二维码" FontSize="14" Foreground="#888888"
+                <TextBlock Text="打开哔哩哔哩手机客户端，扫描下方二维码" FontSize="14" Foreground="{DynamicResource MacTextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,8,0,20"/>
 
                 <Border BorderBrush="{DynamicResource SystemControlBackgroundAccentBrush}"
@@ -71,7 +71,7 @@
                 <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" MinWidth="200">
                     <TextBlock x:Name="UsernameText" FontSize="24" FontWeight="Bold"
                                HorizontalAlignment="Stretch" TextTrimming="CharacterEllipsis"/>
-                    <TextBlock x:Name="UidText" FontSize="12" Foreground="#888888" Margin="0,2,0,0"
+                    <TextBlock x:Name="UidText" FontSize="12" Foreground="{DynamicResource MacTextSecondaryBrush}" Margin="0,2,0,0"
                                HorizontalAlignment="Stretch" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
 
@@ -97,7 +97,7 @@
                             <StackPanel>
                                 <TextBlock Text="自动上传状态" FontWeight="Bold"/>
                                 <TextBlock x:Name="AutoUploadTitleText" Margin="0,6,0,0"
-                                           Foreground="#888888" TextTrimming="CharacterEllipsis" Text="（等待录播结束）"/>
+                                           Foreground="{DynamicResource MacTextSecondaryBrush}" TextTrimming="CharacterEllipsis" Text="（等待录播结束）"/>
                                 <TextBlock x:Name="AutoUploadStageText" Margin="0,4,0,0" Text="空闲"/>
                                 <ProgressBar x:Name="AutoUploadProgress" Height="6" Margin="0,6,0,0"
                                              Minimum="0" Maximum="100" Value="0"/>
@@ -107,8 +107,8 @@
                         </Border>
                         <StackPanel x:Name="ManualPanel" Margin="0,8,0,0">
     <Button Content="选择录播文件（.flv / .mp4）" HorizontalAlignment="Left" Click="PickRecording_Click"/>
-    <TextBlock x:Name="PickedFileText" Foreground="#888888" TextWrapping="Wrap" Margin="0,4,0,0"/>
-    <TextBlock FontSize="12" Foreground="#888888" TextWrapping="Wrap" Margin="0,2,0,0"
+    <TextBlock x:Name="PickedFileText" Foreground="{DynamicResource MacTextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+    <TextBlock FontSize="12" Foreground="{DynamicResource MacTextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0"
                Text="选择文件用于定位录制目录；实际上传同目录【纯净版】/【弹幕版】及主播目录【防撞】。"/>
 
     <Grid Margin="0,12,0,0">
@@ -130,7 +130,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="TitleBox" TextChanged="TitleBox_TextChanged"/>
                 <TextBlock x:Name="TitleCountText" Grid.Column="1" VerticalAlignment="Bottom"
-                           Foreground="#888888" Margin="4,0,0,2" Text="0/80"/>
+                           Foreground="{DynamicResource MacTextSecondaryBrush}" Margin="4,0,0,2" Text="0/80"/>
             </Grid>
             <Grid Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
@@ -172,7 +172,7 @@
     </StackPanel>
 
     <TextBlock Text="将上传的文件" Margin="0,10,0,2"/>
-    <TextBlock x:Name="UploadFilesText" FontFamily="Consolas" TextWrapping="Wrap" Foreground="#888888" Text="（未选择文件）"/>
+    <TextBlock x:Name="UploadFilesText" FontFamily="{DynamicResource MacMonoFontFamily}" TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}" Text="（未选择文件）"/>
 
     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
         <Button Content="保存标签预设" Click="SaveTags_Click" Margin="0,0,8,0"/>

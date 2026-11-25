@@ -12,7 +12,7 @@ namespace Gekota.WPF.Services
     public sealed class AppearanceSettings
     {
         /// <summary>默认主题色：白色（macOS Dock 默认白底黑色图标）。</summary>
-        public const string DefaultThemeColorHex = "#FFFFFF";
+        public const string DefaultThemeColorHex = "Transparent";
 
         /// <summary>
         /// 默认背景图的原始位置（相对于程序目录；首次启动时复制到根目录）。
@@ -22,18 +22,16 @@ namespace Gekota.WPF.Services
         public string ThemeColorHex { get; set; } = DefaultThemeColorHex;
         public string BackgroundImagePath { get; set; } = string.Empty;
         public bool UseAcrylic { get; set; } = true;      // 窗口亚克力材质
+        public bool DarkMode { get; set; }
 
         /// <summary>12 个预设主题色：白色（默认） + 11 个参考配色。</summary>
         public static readonly (string Name, string Hex, string Rgb)[] Presets = new[]
         {
-            ("默认（白色）", "#FFFFFF", "R:255 G:255 B:255"),
+            ("默认（透明）", "Transparent", "跟随深浅色"),
             ("A-SOUL团体", "#FC966E", "R:252 G:150 B:110"),
             ("贝拉Kira",   "#DB7D74", "R:219 G:125 B:116"),
             ("乃琳Queen",  "#576690", "R:87 G:104 B:144"),
             ("嘉然Diana",  "#E799B0", "R:231 G:153 B:176"),
-            ("琳嘉女孩",   "#A892B8", "R:168 G:146 B:184"),
-            ("超级嘉贝",   "#DE9B9E", "R:222 G:155 B:158"),
-            ("乃贝",       "#A5828D", "R:165 G:130 B:141"),
             ("闪耀舞台",   "#83BDF9", "R:131 G:189 B:249"),
             ("思诺Gladys", "#7252C0", "R:114 G:82 B:192"),
             ("心宜Fiona",  "#C93773", "R:201 G:55 B:115"),
@@ -158,6 +156,14 @@ namespace Gekota.WPF.Services
         }
 
         public static void SetThemeColor(string hex) { Current.ThemeColorHex = hex; Save(); Apply(); }
+
+        public static void SetDarkMode(bool dark)
+        {
+            Current.DarkMode = dark;
+            Save();
+            ModernWpf.ThemeManager.Current.ApplicationTheme = dark ? ModernWpf.ApplicationTheme.Dark : ModernWpf.ApplicationTheme.Light;
+            Apply();
+        }
 
         public static void SetUseAcrylic(bool enabled)
         {

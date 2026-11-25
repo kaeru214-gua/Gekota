@@ -21,8 +21,7 @@
                 <ResourceDictionary Source="Resources/ConverterResources.xaml" />
                 <ResourceDictionary Source="Resources/MacTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
-            <FontFamily x:Key="ContentControlThemeFontFamily">Segoe UI</FontFamily>
+            <!-- 全局字体由 MacTheme.Apply 跟随系统消息字体设置。 -->
             <ContextMenu x:Key="CopyTextContextMenu" DataContext="{Binding RelativeSource={RelativeSource Mode=Self},Path=PlacementTarget}"
                      l:ResxLocalizationProvider.DefaultDictionary="Strings">
                 <MenuItem Header="{l:Loc Global_Copy}" Command="{x:Static m:Commands.Copy}" CommandParameter="{Binding Text}"/>
@@ -90,7 +89,7 @@
             <DataTemplate x:Key="RoomDialogHeader">
                 <StackPanel>
                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Style="{DynamicResource SubtitleTextBlockStyle}"
-                               FontFamily="Microsoft Yahei" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="CharacterEllipsis"
+                               FontFamily="{DynamicResource MacFontFamily}" TextWrapping="NoWrap" TextAlignment="Center" TextTrimming="CharacterEllipsis"
                                Text="{Binding Name,Mode=OneWay}" ToolTip="{Binding Name,Mode=OneWay}"/>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Orientation="Horizontal">
                         <ui:PathIcon Height="10" Style="{StaticResource PathIconDataUpperCaseIdentifier}" />

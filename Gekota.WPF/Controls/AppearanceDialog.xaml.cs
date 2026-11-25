@@ -34,7 +34,9 @@ namespace Gekota.WPF.Controls
                     Height = 54,
                     Margin = new Thickness(0, 0, 8, 8),
                     Padding = new Thickness(0),
-                    Background = AppearanceManager.CreateBrush(hex),
+                    Background = string.Equals(hex, "Transparent", StringComparison.OrdinalIgnoreCase)
+                        ? new SolidColorBrush(Color.FromArgb(0x33, 0x80, 0x80, 0x88))
+                        : AppearanceManager.CreateBrush(hex),
                     BorderThickness = new Thickness(2),
                     BorderBrush = string.Equals(hex, AppearanceManager.Current.ThemeColorHex,
                         StringComparison.OrdinalIgnoreCase) ? Brushes.White : Brushes.Transparent,

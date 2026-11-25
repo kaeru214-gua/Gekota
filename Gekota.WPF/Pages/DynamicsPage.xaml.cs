@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -56,6 +57,7 @@ namespace Gekota.WPF.Pages
         private bool initialized;
         private bool loadingImages;
         private int lastErrors;
+        private INotifyCollectionChanged? subscribedRooms;
 
         public DynamicsPage()
         {
@@ -65,6 +67,7 @@ namespace Gekota.WPF.Pages
             this.refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(10) };
             this.refreshTimer.Tick += async (s, e) => await this.LoadAsync();
             this.Loaded += this.DynamicsPage_Loaded;
+            this.DataContextChanged += (s, e) => this.SubscribeRooms();
             this.Unloaded += (s, e) => this.refreshTimer.Stop();
         }
 
@@ -93,11 +96,32 @@ namespace Gekota.WPF.Pages
                 return;
             }
             this.initialized = true;
+            this.SubscribeRooms();
             await this.BuildStreamerTilesAsync();
             if (this.StreamerBar.SelectedIndex < 0 && this.streamerTiles.Count > 0)
                 this.StreamerBar.SelectedIndex = 0;
             await this.LoadAsync();
             this.refreshTimer.Start();
+        }
+
+        private void SubscribeRooms()
+        {
+            if (this.DataContext is not IRecorder recorder) return;
+            var rooms = (INotifyCollectionChanged)recorder.Rooms;
+            if (ReferenceEquals(this.subscribedRooms, rooms)) return;
+            if (this.subscribedRooms != null)
+                this.subscribedRooms.CollectionChanged -= this.Rooms_CollectionChanged;
+            this.subscribedRooms = rooms;
+            rooms.CollectionChanged += this.Rooms_CollectionChanged;
+        }
+
+        private async void Rooms_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (!this.initialized) return;
+            await this.BuildStreamerTilesAsync();
+            if (this.StreamerBar.SelectedIndex < 0 && this.streamerTiles.Count > 0)
+                this.StreamerBar.SelectedIndex = 0;
+            await this.LoadAsync();
         }
 
         private async Task BuildStreamerTilesAsync()

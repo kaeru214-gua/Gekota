@@ -20,7 +20,7 @@ namespace Gekota.WPF.Services
         public static bool IsDark { get; private set; }
         public static Color Accent { get; private set; } = Color.FromRgb(0x0A, 0x84, 0xFF);
         public static Color SkinColor { get; private set; } = Colors.White;
-        public static bool IsDefaultWhiteSkin => IsNearWhite(SkinColor);
+        public static bool IsDefaultWhiteSkin => SkinColor.A == 0 || IsNearWhite(SkinColor);
         public static event EventHandler? Changed;
 
         public static void Apply()
@@ -32,9 +32,10 @@ namespace Gekota.WPF.Services
 
                 IsDark = ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Dark;
 
-                var skin = ParseColor(AppearanceManager.Current.ThemeColorHex, Colors.White);
+                var skin = ParseColor(AppearanceManager.Current.ThemeColorHex, Colors.Transparent);
                 SkinColor = skin;
-                Accent = IsNearWhite(skin) ? Color.FromRgb(0x0A, 0x84, 0xFF) : skin;
+                var isDefaultSkin = skin.A == 0 || IsNearWhite(skin);
+                Accent = isDefaultSkin ? Color.FromRgb(0x0A, 0x84, 0xFF) : skin;
 
                 // 让 ModernWpf 的 ToggleSwitch / Flyout 等控件跟随皮肤色。
                 try { ThemeManager.Current.AccentColor = Accent; }
@@ -44,18 +45,27 @@ namespace Gekota.WPF.Services
                 var textSecondary = IsDark ? Color.FromRgb(0xA1, 0xA1, 0xA6) : Color.FromRgb(0x6E, 0x6E, 0x73);
                 var textTertiary = IsDark ? Color.FromRgb(0x8E, 0x8E, 0x93) : Color.FromRgb(0x8E, 0x8E, 0x93);
 
+                // 全局字体跟随 Windows「消息字体」设置。
+                var systemFont = SystemFonts.MessageFontFamily;
+                app.Resources["MacFontFamily"] = systemFont;
+                app.Resources["MacDisplayFontFamily"] = systemFont;
+                app.Resources["MacMonoFontFamily"] = systemFont;
+                app.Resources["ContentControlThemeFontFamily"] = systemFont;
+
                 Set("MacTextPrimaryBrush", text);
                 Set("MacTextSecondaryBrush", textSecondary);
-                Set("MacTextTertiaryBrush", textTertiary);
-                Set("MacAccentBrush", Accent);
+                Set("MacTextTertiaryBrush", textTertiary);                Set("MacAccentBrush", Accent);
                 Set("MacAccentSoftBrush", Color.FromArgb(0x26, Accent.R, Accent.G, Accent.B));
                 Set("MacOnAccentBrush", ContrastForeground(Accent));
                 Set("MacDangerBrush", Color.FromRgb(0xFF, 0x45, 0x3A));
                 Set("MacSuccessBrush", Color.FromRgb(0x30, 0xD1, 0x58));
                 Set("MacWarningBrush", Color.FromRgb(0xFF, 0x9F, 0x0A));
 
+                var acrylic = AppearanceManager.Current.UseAcrylic;
                 Set("MacContentBrush", IsDark ? Color.FromRgb(0x1C, 0x1C, 0x1E) : Color.FromRgb(0xF2, 0xF3, 0xF7));
-                Set("MacCardBrush", IsDark ? Color.FromArgb(0xC7, 0x2C, 0x2C, 0x2E) : Color.FromArgb(0xC7, 0xFF, 0xFF, 0xFF));
+                Set("MacCardBrush", IsDark
+                    ? Color.FromArgb((byte)(acrylic ? 0xC7 : 0xEE), 0x2C, 0x2C, 0x2E)
+                    : Color.FromArgb((byte)(acrylic ? 0xC7 : 0xEE), 0xFF, 0xFF, 0xFF));
                 Set("MacFieldBrush", IsDark ? Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
                 Set("MacControlBrush", IsDark ? Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xE6, 0xFF, 0xFF, 0xFF));
                 Set("MacControlHoverBrush", IsDark ? Color.FromArgb(0x4D, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0xF2, 0xFF, 0xFF, 0xFF));
@@ -69,15 +79,31 @@ namespace Gekota.WPF.Services
                 Set("MacTrackBrush", IsDark ? Color.FromArgb(0x3D, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x2E, 0x00, 0x00, 0x00));
                 Set("MacDisabledBrush", IsDark ? Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF));
 
-                // Dock：默认白色皮肤 = 白底黑图案；其它皮肤 = 皮肤色底白图案。
-                Set("MacDockIconBackgroundBrush", IsDefaultWhiteSkin ? Colors.White : skin);
-                Set("MacDockIconForegroundBrush", IsDefaultWhiteSkin ? Color.FromRgb(0x1D, 0x1D, 0x1F) : Colors.White);
+                // Dock：默认透明皮肤跟随深浅色；其他主题色也使用半透明底，保留 Dock 的玻璃感。
+                var dockIconBackground = isDefaultSkin
+                    ? (IsDark ? Color.FromArgb(0x8C, 0x62, 0x62, 0x68) : Color.FromArgb(0xBA, 0x5E, 0x5E, 0x66))
+                    : Color.FromArgb(0xA6, skin.R, skin.G, skin.B);
+                var dockIconForeground = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF);
+                Set("MacDockIconBackgroundBrush", dockIconBackground);
+                Set("MacDockIconForegroundBrush", dockIconForeground);
                 Set("MacDockIconHoverBrush", IsDark ? Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF));
                 Set("MacDockIndicatorBrush", IsDark ? Color.FromRgb(0xF5, 0xF5, 0xF7) : Color.FromRgb(0x1D, 0x1D, 0x1F));
 
                 Set("MacDockBrush", IsDark
-                    ? Color.FromArgb(0x80, 0x2C, 0x2C, 0x2E)
-                    : Color.FromArgb(0x80, 0xE2, 0xE2, 0xE7));
+                    ? Color.FromArgb((byte)(acrylic ? 0x80 : 0xCC), 0x2C, 0x2C, 0x2E)
+                    : Color.FromArgb((byte)(acrylic ? 0x80 : 0xD9), 0xE2, 0xE2, 0xE7));
+
+                SetGradient("MacCardGlassBrush", IsDark
+                    ? new[] { (Color.FromArgb(0xD1, 0x2C, 0x2C, 0x2E), 0d), (Color.FromArgb(0xA8, 0x2C, 0x2C, 0x2E), 1d) }
+                    : new[] { (Color.FromArgb(0xD1, 0xFF, 0xFF, 0xFF), 0d), (Color.FromArgb(0xA8, 0xFF, 0xFF, 0xFF), 1d) });
+                SetGradient("MacAddCardBrush", IsDark
+                    ? new[] { (Color.FromArgb(0xF0, 0x30, 0x30, 0x33), 0d), (Color.FromArgb(0xEA, 0x28, 0x28, 0x2B), 1d) }
+                    : new[] { (Color.FromArgb(0xFF, 0xF8, 0xF9, 0xFB), 0d), (Color.FromArgb(0xFF, 0xF2, 0xF4, 0xF7), 1d) });
+                SetGradient("MacDockSheenBrush", new[]
+                {
+                    (Color.FromArgb(IsDark ? (byte)0x1F : (byte)0x59, 0xFF, 0xFF, 0xFF), 0d),
+                    (Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0.55d),
+                });
 
                 Set("MacWindowTintBrush", IsDark
                     ? Color.FromArgb(0xB3, 0x1C, 0x1C, 0x1E)
@@ -133,11 +159,7 @@ namespace Gekota.WPF.Services
 
         public static void ToggleLightDark()
         {
-            ThemeManager.Current.ApplicationTheme =
-                ThemeManager.Current.ActualApplicationTheme == ApplicationTheme.Dark
-                    ? ApplicationTheme.Light
-                    : ApplicationTheme.Dark;
-            Apply();
+            AppearanceManager.SetDarkMode(!IsDark);
         }
 
         public static Color ParseColor(string? hex, Color fallback)

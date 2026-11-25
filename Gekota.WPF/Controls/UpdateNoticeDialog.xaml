@@ -11,15 +11,15 @@
     DefaultButton="Primary">
     <StackPanel MaxWidth="560">
         <TextBlock x:Name="HeaderText" FontSize="18" FontWeight="Bold"
-                   FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+                   FontFamily="{DynamicResource MacFontFamily}" TextWrapping="Wrap"/>
 
         <TextBlock x:Name="IntroText" Margin="0,10,0,0" FontSize="14"
-                   FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+                   FontFamily="{DynamicResource MacFontFamily}" TextWrapping="Wrap"/>
 
         <ItemsControl x:Name="ItemsControl" Margin="0,2,0,0">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Margin="0,6,0,0" FontSize="14" TextWrapping="Wrap" FontFamily="Microsoft YaHei">
+                    <TextBlock Margin="0,6,0,0" FontSize="14" TextWrapping="Wrap" FontFamily="{DynamicResource MacFontFamily}">
                         <Run Text="• "/><Run Text="{Binding Mode=OneWay}"/>
                     </TextBlock>
                 </DataTemplate>
@@ -27,7 +27,7 @@
         </ItemsControl>
 
         <Border BorderThickness="0,1,0,0" BorderBrush="#22000000" Margin="0,14,0,0" Padding="0,12,0,0">
-            <TextBlock x:Name="FooterText" FontSize="13" FontFamily="Microsoft YaHei" TextWrapping="Wrap"/>
+            <TextBlock x:Name="FooterText" FontSize="13" FontFamily="{DynamicResource MacFontFamily}" TextWrapping="Wrap"/>
         </Border>
     </StackPanel>
 </ui:ContentDialog>

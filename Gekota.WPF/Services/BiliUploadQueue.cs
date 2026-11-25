@@ -31,6 +31,7 @@ namespace Gekota.WPF.Services
         public void Enqueue(Func<Task> job)
         {
             jobs.Enqueue(job);
+            logger.Information("[上传] 队列加入任务，待处理 {Count}", jobs.Count);
             Notify();
             _ = ProcessAsync();
         }
@@ -46,6 +47,7 @@ namespace Gekota.WPF.Services
                 {
                     try
                     {
+                        logger.Information("[上传] 开始队列任务，剩余 {Count}", jobs.Count);
                         await job().ConfigureAwait(false);
                     }
                     catch (Exception ex)

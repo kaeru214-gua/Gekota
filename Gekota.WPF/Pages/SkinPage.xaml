@@ -6,8 +6,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ui="http://schemas.modernwpf.com/2019"
-    xmlns:local="clr-namespace:Gekota.WPF.Pages"
-    xmlns:services="clr-namespace:Gekota.WPF.Services"
     mc:Ignorable="d"
     d:DesignHeight="900" d:DesignWidth="1000"
     Background="Transparent"
@@ -15,70 +13,38 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="32,22,32,36" MaxWidth="860" HorizontalAlignment="Left">
 
-            <TextBlock Text="主题" Style="{StaticResource MacTitleTextStyle}" />
-            <TextBlock Text="选择一种强调色，Dock 图标会跟着变化。默认白色是 macOS 最经典的样子。"
+            <TextBlock Text="外观" Style="{StaticResource MacTitleTextStyle}" />
+            <TextBlock Text="调整颜色模式、窗口材质和页面背景。"
                        Style="{StaticResource MacSubheadTextStyle}"
                        Margin="0,6,0,22" TextWrapping="Wrap" />
 
-            <!-- 强调色 -->
+            <!-- 颜色模式 -->
             <Border Background="{DynamicResource MacCardBrush}"
                     BorderBrush="{DynamicResource MacBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="21"
                     Padding="22,18"
                     Margin="0,0,0,14">
-                <StackPanel>
-                    <Grid>
-                        <StackPanel>
-                            <TextBlock Text="强调色" Style="{StaticResource MacHeadlineTextStyle}" />
-                            <TextBlock Text="改变 Dock 图标底色、按钮与选中状态。"
-                                       Style="{StaticResource MacCaptionTextStyle}"
-                                       Margin="0,3,0,0" />
-                        </StackPanel>
-                        <Button Content="恢复默认"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Top"
-                                Style="{StaticResource MacQuietButtonStyle}"
-                                Click="ResetDefault_Click" />
-                    </Grid>
-
-                    <WrapPanel x:Name="ColorPanel" Margin="0,16,0,0" />
-
-                    <!-- Dock 预览 -->
-                    <Border Background="{DynamicResource MacHoverBrush}"
-                            BorderBrush="{DynamicResource MacSeparatorBrush}"
-                            BorderThickness="1"
-                            CornerRadius="13"
-                            Padding="16,14"
-                            Margin="0,4,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Border Width="58" Height="58"
-                                    Background="{DynamicResource MacDockIconBackgroundBrush}"
-                                    CornerRadius="15"
-                                    BorderBrush="#33FFFFFF"
-                                    BorderThickness="1">
-                                <Border.Effect>
-                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.20" Color="#000000" />
-                                </Border.Effect>
-                                <ui:PathIcon Width="28" Height="28"
-                                             Foreground="{DynamicResource MacDockIconForegroundBrush}"
-                                             Style="{StaticResource PathIconDataHomeOutline}" />
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
-                                <TextBlock x:Name="PreviewNameText" Style="{StaticResource MacHeadlineTextStyle}" />
-                                <TextBlock x:Name="PreviewHexText" Style="{StaticResource MacCaptionTextStyle}" Margin="0,2,0,0" />
-                                <TextBlock x:Name="PreviewHintText"
-                                           Style="{StaticResource MacCaptionTextStyle}"
-                                           Margin="0,4,0,0"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="颜色模式" Style="{StaticResource MacHeadlineTextStyle}" />
+                        <TextBlock Text="切换浅色或深色外观，选择会自动保存。"
+                                   Style="{StaticResource MacCaptionTextStyle}"
+                                   Margin="0,3,0,0" TextWrapping="Wrap" MaxWidth="580" />
+                    </StackPanel>
+                    <ui:ToggleSwitch Grid.Column="1"
+                                     x:Name="DarkModeSwitch"
+                                     VerticalAlignment="Center"
+                                     Margin="18,0,0,0"
+                                     Style="{StaticResource MacToggleSwitchStyle}"
+                                     OnContent="深色"
+                                     OffContent="浅色"
+                                     Toggled="DarkModeSwitch_Toggled" />
+                </Grid>
             </Border>
 
             <!-- 窗口材质 -->
@@ -95,7 +61,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="窗口材质" Style="{StaticResource MacHeadlineTextStyle}" />
-                        <TextBlock Text="使用 Windows 原生亚克力模糊，让 Dock 与窗口像一块磨砂玻璃。关闭后使用纯色背景。"
+                        <TextBlock Text="开启后背景图进行磨砂模糊，卡片和 Dock 更通透；没有背景图时使用 Windows 原生亚克力。关闭后使用清晰背景和更实的卡片。"
                                    Style="{StaticResource MacCaptionTextStyle}"
                                    Margin="0,3,0,0" TextWrapping="Wrap" MaxWidth="580" />
                     </StackPanel>
@@ -136,7 +102,7 @@
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="提示：右键点击主页空白处可以打开功能菜单；Dock 图标可在左侧导航。"
+            <TextBlock Text="提示：右键点击主页面空白处可以打开功能菜单；Dock 图标可在左侧导航。"
                        Style="{StaticResource MacCaptionTextStyle}"
                        Margin="4,6,0,0" />
         </StackPanel>

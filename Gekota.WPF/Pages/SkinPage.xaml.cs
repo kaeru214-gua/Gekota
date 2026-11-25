@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using Gekota.WPF.Services;
 using Microsoft.Win32;
 using Serilog;
@@ -10,7 +9,7 @@ using Serilog;
 #nullable enable
 namespace Gekota.WPF.Pages
 {
-    /// <summary>macOS 风格的外观 / 皮肤页面。</summary>
+    /// <summary>窗口材质与页面背景。</summary>
     public partial class SkinPage
     {
         private static readonly ILogger logger = Log.ForContext<SkinPage>();
@@ -44,12 +43,11 @@ namespace Gekota.WPF.Pages
             this.loading = true;
             try
             {
-                this.BuildSwatches();
+                this.DarkModeSwitch.IsOn = AppearanceManager.Current.DarkMode;
                 this.AcrylicSwitch.IsOn = AppearanceManager.Current.UseAcrylic;
                 this.ImagePathText.Text = string.IsNullOrWhiteSpace(AppearanceManager.Current.BackgroundImagePath)
                     ? "未设置背景图片"
                     : System.IO.Path.GetFileName(AppearanceManager.Current.BackgroundImagePath);
-                this.RefreshPreview();
             }
             finally
             {
@@ -70,67 +68,15 @@ namespace Gekota.WPF.Pages
         private void AppearanceManager_Changed(object? sender, EventArgs e)
         {
             this.loading = true;
-            try { this.RefreshPreview(); }
-            finally { this.loading = false; }
-        }
-
-        private void BuildSwatches()
-        {
-            this.ColorPanel.Children.Clear();
-            var current = AppearanceManager.Current.ThemeColorHex;
-
-            foreach (var (name, hex, rgb) in AppearanceSettings.Presets)
-            {
-                var swatch = new RadioButton
-                {
-                    Style = (Style)this.FindResource("MacSwatchRadioStyle"),
-                    Background = AppearanceManager.CreateBrush(hex),
-                    GroupName = "SkinColor",
-                    Tag = hex,
-                    ToolTip = name + "\n" + hex + "  " + rgb,
-                    IsChecked = string.Equals(hex, current, StringComparison.OrdinalIgnoreCase),
-                };
-                swatch.Checked += this.Swatch_Checked;
-                this.ColorPanel.Children.Add(swatch);
-            }
-        }
-
-        private void Swatch_Checked(object sender, RoutedEventArgs e)
-        {
-            if (this.loading) return;
-            if (sender is not RadioButton { Tag: string hex }) return;
-            AppearanceManager.SetThemeColor(hex);
-            this.RefreshPreview();
-        }
-
-        private void RefreshPreview()
-        {
-            var hex = AppearanceManager.Current.ThemeColorHex;
-            var preset = AppearanceSettings.Presets.FirstOrDefault(p =>
-                string.Equals(p.Hex, hex, StringComparison.OrdinalIgnoreCase));
-
-            this.PreviewNameText.Text = string.IsNullOrEmpty(preset.Name)
-                ? "自定义颜色"
-                : preset.Name;
-            this.PreviewHexText.Text = hex.ToUpperInvariant();
-
-            if (AppearanceManager.Current.ThemeColorHex.Equals("#FFFFFF", StringComparison.OrdinalIgnoreCase))
-                this.PreviewHintText.Text = "白色皮肤：白底 + 黑色图案";
-            else
-                this.PreviewHintText.Text = "彩色皮肤：皮肤色底 + 白色图案";
-        }
-
-        private void ResetDefault_Click(object sender, RoutedEventArgs e)
-        {
-            AppearanceManager.SetThemeColor("#FFFFFF");
-            this.loading = true;
             try
             {
-                foreach (var child in this.ColorPanel.Children.OfType<RadioButton>())
-                    child.IsChecked = (child.Tag as string)?.Equals("#FFFFFF", StringComparison.OrdinalIgnoreCase) == true;
+                this.DarkModeSwitch.IsOn = AppearanceManager.Current.DarkMode;
+                this.AcrylicSwitch.IsOn = AppearanceManager.Current.UseAcrylic;
+                this.ImagePathText.Text = string.IsNullOrWhiteSpace(AppearanceManager.Current.BackgroundImagePath)
+                    ? "未设置背景图片"
+                    : System.IO.Path.GetFileName(AppearanceManager.Current.BackgroundImagePath);
             }
             finally { this.loading = false; }
-            this.RefreshPreview();
         }
 
         private void PickImage_Click(object sender, RoutedEventArgs e)
@@ -163,6 +109,12 @@ namespace Gekota.WPF.Pages
         {
             if (this.loading) return;
             AppearanceManager.SetUseAcrylic(this.AcrylicSwitch.IsOn);
+        }
+
+        private void DarkModeSwitch_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (this.loading) return;
+            AppearanceManager.SetDarkMode(this.DarkModeSwitch.IsOn);
         }
     }
 }

@@ -59,8 +59,8 @@
         <ControlTemplate TargetType="ui:ContentDialog">
             <Grid>
                 <Border Background="#66000000" CornerRadius="21" Margin="1" />
-                <Border Background="#F2F2F3F7"
-                        BorderBrush="#80FFFFFF"
+                <Border Background="{DynamicResource MacCardBrush}"
+                        BorderBrush="{DynamicResource MacBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         Width="300"

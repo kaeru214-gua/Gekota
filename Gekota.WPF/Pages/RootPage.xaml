@@ -126,7 +126,7 @@
 
     <Grid x:Name="RootGrid" Background="Transparent">
         <!-- 不透明底色：背景图模糊后边缘不会透出桌面 -->
-        <Border Background="{DynamicResource MacWindowBaseBrush}" Panel.ZIndex="-21" />
+        <Border x:Name="WindowBaseLayer" Background="{DynamicResource MacWindowBaseBrush}" Panel.ZIndex="-21" />
         <!-- 用户自定义背景图（位于窗口材质之上、内容之下） -->
         <Image x:Name="AppearanceBackgroundImage"
                Source="pack://siteoforigin:,,,/default_background.jpg"
@@ -136,6 +136,9 @@
                 <BlurEffect Radius="12" KernelType="Gaussian" RenderingBias="Performance" />
             </Image.Effect>
         </Image>
+
+        <Border x:Name="DarkOverlay" Background="#59000000" Panel.ZIndex="-19"
+                Visibility="Collapsed" IsHitTestVisible="False" />
 
         <controls:TaskbarIconControl DataContext="{Binding}" d:IsHidden="True" />
 
@@ -154,7 +157,7 @@
 
                 <!-- ============ 窗口标题栏（只是窗口 chrome，不是功能栏） ============ -->
                 <Grid x:Name="TitleBar"
-                      Background="{DynamicResource MacChromeBrush}"
+                      Background="{DynamicResource MacDockBrush}"
                       MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                     <!-- 左上角：图标 + 应用名 -->
                     <StackPanel Orientation="Horizontal"
@@ -253,7 +256,6 @@
                         <Border.ContextMenu>
                             <ContextMenu>
                                 <MenuItem Header="主页" Click="DockMenuHome_Click" />
-                                <MenuItem Header="主题设置…" Click="DockMenuSkin_Click" />
                                 <MenuItem Header="设置…" Click="DockMenuSettings_Click" />
                                 <Separator />
                                 <MenuItem Header="切换浅色 / 深色" Click="DockMenuTheme_Click" />
@@ -381,7 +383,7 @@
                             <!-- 全局压制进度 -->
                             <Border x:Name="GlobalCompressBar"
                                     Grid.Row="2"
-                                    Margin="24,0,24,24"
+                                    Margin="0,0,24,24"
                                     Padding="12,7"
                                     Visibility="Collapsed"
                                     Background="{DynamicResource MacCardBrush}"

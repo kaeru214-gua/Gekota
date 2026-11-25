@@ -23,9 +23,9 @@
                 Width="58" Height="58"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Background="{DynamicResource MacDockIconBackgroundBrush}"
-                BorderBrush="#33FFFFFF"
-                BorderThickness="1"
+                Background="{DynamicResource MacFieldBrush}"
+                BorderBrush="Transparent"
+                BorderThickness="0"
                 CornerRadius="16"
                 RenderTransformOrigin="0.5,0.5">
             <Border.RenderTransform>
@@ -43,7 +43,7 @@
                          Width="30" Height="30"
                          HorizontalAlignment="Center"
                          VerticalAlignment="Center"
-                         Foreground="{DynamicResource MacDockIconForegroundBrush}"
+                         Foreground="{DynamicResource MacTextPrimaryBrush}"
                          Style="{Binding IconStyle, ElementName=Root}" />
         </Border>
 

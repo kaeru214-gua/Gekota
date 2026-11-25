@@ -62,17 +62,54 @@ namespace Gekota.WPF.Services
             try { NtResumeProcess(p.Handle); } catch { }
         }
 
-        /// <summary>强制终止当前压制。</summary>
+        /// <summary>强制终止当前压制，并连同 ShanaEncoder 拉起的子进程一起结束。</summary>
         public static void KillCurrent()
         {
             var p = currentProcess;
-            if (p == null) return;
-            try { p.Kill(); } catch { }
+            currentProcess = null;
+            if (p != null) KillTree(p);
         }
 
-        public static Task<int> RunAsync(VideoCompressOptions opts, string input, string output, string? subtitle,
-            Action<CompressProgress>? onProgress, CancellationToken ct = default)
+        /// <summary>清理上次异常退出遗留的 ShanaEncoder 进程。</summary>
+        public static void KillStaleProcesses()
         {
+            var root = Path.GetFullPath(FfmpegDir).TrimEnd('\\') + "\\";
+            foreach (var p in Process.GetProcessesByName("ShanaEncoder.sha"))
+            {
+                try
+                {
+                    var path = p.MainModule?.FileName;
+                    if (!string.IsNullOrWhiteSpace(path) &&
+                        Path.GetFullPath(path).StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                        KillTree(p);
+                }
+                catch { }
+            }
+        }
+
+        private static void KillTree(Process p)
+        {
+            try
+            {
+                using var taskkill = Process.Start(new ProcessStartInfo("taskkill",
+                    "/PID " + p.Id + " /T /F")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+                taskkill?.WaitForExit(3000);
+            }
+            catch
+            {
+                try { p.Kill(); } catch { }
+            }
+        }
+
+        /// <summary>应用退出时调用，避免 ShanaEncoder 留在后台。</summary>
+        public static void Shutdown() => KillCurrent();
+
+        public static Task<int> RunAsync(VideoCompressOptions opts, string input, string output, string? subtitle,
+            Action<CompressProgress>? onProgress, CancellationToken ct = default)        {
             return Task.Run(() =>
             {
                 if (!File.Exists(FfmpegPath))

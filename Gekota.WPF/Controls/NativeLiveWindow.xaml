@@ -51,10 +51,13 @@
                                 Background="#66000000" CornerRadius="7" Padding="9,5">
                             <TextBlock x:Name="OverlayTitle" Foreground="White" FontSize="13" />
                         </Border>
-                        <Button x:Name="PlayButton" Content="▶" Width="42" Height="42"
+                        <Button x:Name="PlayButton" Width="42" Height="42"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Background="#99000000" Foreground="White" BorderThickness="0"
-                                Click="PlayButton_Click" />
+                                Click="PlayButton_Click">
+                            <Path Data="M 8,5 L 19,12 L 8,19 Z" Fill="White"
+                                  Stretch="Uniform" Width="18" Height="18" />
+                        </Button>
                     </Grid>
                 </vlc:VideoView.Content>
             </vlc:VideoView>

@@ -376,6 +376,12 @@
       <DependentUpon>ProfileEditDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="Services\UploadMetadataService.cs" />
+    <Compile Include="Services\CompressResumeStore.cs" />
+    <Compile Include="Services\CompressRecoveryService.cs" />
+    <Compile Include="Services\MaterialSettings.cs" />
+    <Compile Include="Services\MaterialArchiveService.cs" />
+    <Compile Include="Services\UploadHistoryStore.cs" />
+    <Compile Include="Services\UploadPendingService.cs" />
     <Compile Include="Services\RecordingModeSettings.cs" />
     <Compile Include="Services\RecordingSegmentMerger.cs" />
     <Compile Include="Services\BackgroundImageService.cs" />

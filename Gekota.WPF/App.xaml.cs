@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using Gekota.WPF.Services;
 using Microsoft.Win32;
+using ModernWpf;
 using Serilog;
 
 #nullable enable
@@ -25,6 +26,10 @@ namespace Gekota.WPF
         {
             try
             {
+                ThemeManager.Current.ApplicationTheme = AppearanceManager.Current.DarkMode
+                    ? ApplicationTheme.Dark
+                    : ApplicationTheme.Light;
+                try { VideoCompressService.KillStaleProcesses(); } catch { }
                 MacTheme.Apply();
 
                 SystemEvents.TimeChanged += this.SystemEvents_TimeChanged;
@@ -39,6 +44,7 @@ namespace Gekota.WPF
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
+            try { VideoCompressService.Shutdown(); } catch { }
             try
             {
                 SystemEvents.TimeChanged -= this.SystemEvents_TimeChanged;

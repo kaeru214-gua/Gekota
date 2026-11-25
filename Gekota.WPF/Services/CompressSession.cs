@@ -100,6 +100,14 @@ namespace Gekota.WPF.Services
         public void AddForAutoCompress(string videoPath, string? subtitlePath)
         {
             if (!File.Exists(videoPath)) return;
+            var mp4 = Path.ChangeExtension(videoPath, ".mp4");
+            if (videoPath.EndsWith(".flv", StringComparison.OrdinalIgnoreCase) && File.Exists(mp4))
+                videoPath = mp4;
+            var key = NormalizedBase(videoPath);
+            if (this.Items.Any(x => string.Equals(NormalizedBase(x.FilePath), key,
+                                                StringComparison.OrdinalIgnoreCase) &&
+                                    string.Equals(x.SubtitlePath, subtitlePath, StringComparison.OrdinalIgnoreCase)))
+                return;
             var item = new CompressFileItem(videoPath);
             if (!string.IsNullOrWhiteSpace(subtitlePath) && File.Exists(subtitlePath))
             {
@@ -107,6 +115,34 @@ namespace Gekota.WPF.Services
                 item.SubtitleText = Path.GetExtension(subtitlePath).TrimStart('.').ToUpperInvariant();
             }
             this.AddItem(item);
+            CompressResumeStore.Add(videoPath, subtitlePath);
+        }
+
+        private static string NormalizedBase(string path)
+        {
+            var dir = Path.GetDirectoryName(path) ?? "";
+            return Path.Combine(dir, Path.GetFileNameWithoutExtension(path)).ToLowerInvariant();
+        }
+
+        /// <summary>恢复上次异常退出时尚未完成的压制任务。</summary>
+        public void RestorePending()
+        {
+            var pending = CompressResumeStore.Load();
+            if (pending.Count == 0) return;
+            foreach (var (input, subtitle) in pending)
+                this.AddForAutoCompress(input, subtitle);
+            this.Start(VideoCompressSettings.Current);
+        }
+
+        /// <summary>扫描录制目录，把缺少压制产物的任务加入列表并继续。</summary>
+        public void RestoreFromDisk(string workDirectory)
+        {
+            var before = this.Items.Count;
+            foreach (var (input, subtitle) in CompressRecoveryService.FindUnfinished(
+                         workDirectory, TimeSpan.FromDays(7)))
+                this.AddForAutoCompress(input, subtitle);
+            if (this.Items.Count > before)
+                this.Start(VideoCompressSettings.Current);
         }
 
         public void AttachSubtitle(string subtitlePath)
@@ -201,6 +237,7 @@ namespace Gekota.WPF.Services
 
                     lock (sync) { done++; currentPercent = 100; }
                     this.SetStatus(item, code == 0 ? "完成" : "失败");
+                    CompressResumeStore.Remove(item.FilePath, item.SubtitlePath);
                     logger.Information("[压制] {Result} {Output}", code == 0 ? "完成" : "失败", output);
                     this.Notify();
                 }

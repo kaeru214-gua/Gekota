@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -190,6 +191,11 @@ namespace Gekota.WPF.Pages
                 this.AutoCompressCheckBox.IsChecked = VideoCompressSettings.Current.AutoCompressEnabled;
                 this.AutoUploadCheckBox.IsChecked = BiliUploadSettings.AutoUploadEnabled;
                 this.AutoUploadTitleTemplateBox.Text = BiliUploadSettings.VideoTitleTemplate;
+                this.SaveMaterialToggle.IsOn = MaterialSettings.Enabled;
+                this.SaveMaterialPathBox.Text = MaterialSettings.SavePath;
+                this.MaterialPathPanel.Visibility = MaterialSettings.Enabled
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             }
             finally
             {
@@ -314,6 +320,36 @@ namespace Gekota.WPF.Pages
         {
             if (this.initializingAutomation) return;
             BiliUploadSettings.VideoTitleTemplate = this.AutoUploadTitleTemplateBox.Text;
+        }
+
+        private void SaveMaterialToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (this.initializingAutomation) return;
+            MaterialSettings.SetEnabled(this.SaveMaterialToggle.IsOn);
+            this.MaterialPathPanel.Visibility = this.SaveMaterialToggle.IsOn
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        private void SaveMaterialPathBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (this.initializingAutomation) return;
+            MaterialSettings.SetSavePath(this.SaveMaterialPathBox.Text);
+        }
+
+        private void BrowseMaterialPath_Click(object sender, RoutedEventArgs e)
+        {
+            using var dialog = new System.Windows.Forms.FolderBrowserDialog
+            {
+                Description = "选择素材保存文件夹",
+                ShowNewFolderButton = true,
+                SelectedPath = Directory.Exists(this.SaveMaterialPathBox.Text)
+                    ? this.SaveMaterialPathBox.Text
+                    : "",
+            };
+            if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+            this.SaveMaterialPathBox.Text = dialog.SelectedPath;
+            MaterialSettings.SetSavePath(dialog.SelectedPath);
         }
 
         // ==================== 录制画质 ====================

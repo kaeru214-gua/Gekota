@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -36,8 +37,11 @@ namespace Gekota.WPF.Pages
         private readonly DispatcherTimer refreshTimer;
         private bool refreshing;
         private bool initialized;
+        private bool reloadQueued;
+        private INotifyCollectionChanged? subscribedRooms;
         private string? selectedRoomName;
         private string? lastFailureMessage;
+        private readonly HashSet<Guid> subscribedStateRooms = new();
 
         private static readonly Dictionary<string, Color> KnownThemes = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -74,6 +78,7 @@ namespace Gekota.WPF.Pages
             this.DataContextChanged += async (s, e) =>
             {
                 if (!this.initialized || e.NewValue is not IRecorder || this.refreshing) return;
+                this.SubscribeRooms();
                 await this.BuildStreamerTilesAsync();
                 if (this.StreamerBar.SelectedIndex < 0 && this.StreamerTiles.Count > 0)
                     this.StreamerBar.SelectedIndex = 0;
@@ -113,6 +118,7 @@ namespace Gekota.WPF.Pages
                 return;
             }
             this.BuildWeekGrid();
+            this.SubscribeRooms();
             await this.BuildStreamerTilesAsync();
             if (this.StreamerBar.SelectedIndex < 0 && this.StreamerTiles.Count > 0)
                 this.StreamerBar.SelectedIndex = 0;
@@ -130,12 +136,37 @@ namespace Gekota.WPF.Pages
             return this.DataContext is IRecorder;
         }
 
+        private void SubscribeRooms()
+        {
+            if (this.DataContext is not IRecorder recorder) return;
+            var rooms = (INotifyCollectionChanged)recorder.Rooms;
+            if (ReferenceEquals(this.subscribedRooms, rooms)) return;
+            if (this.subscribedRooms != null)
+                this.subscribedRooms.CollectionChanged -= this.Rooms_CollectionChanged;
+            this.subscribedRooms = rooms;
+            rooms.CollectionChanged += this.Rooms_CollectionChanged;
+        }
+
+        private async void Rooms_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (!this.initialized) return;
+            await this.BuildStreamerTilesAsync();
+            if (this.StreamerBar.SelectedIndex < 0 && this.StreamerTiles.Count > 0)
+                this.StreamerBar.SelectedIndex = 0;
+            await this.LoadReservationsAsync();
+        }
+
         private async Task BuildStreamerTilesAsync()
         {
             this.StreamerTiles.Clear();
             this.themeByRoom.Clear();
             var rec = this.DataContext as IRecorder;
             var rooms = rec?.Rooms.ToList() ?? new List<IRoom>();
+            foreach (var room in rooms)
+            {
+                if (this.subscribedStateRooms.Add(room.ObjectId))
+                    room.PropertyChanged += this.Room_StateChanged;
+            }
             var accent = this.TryFindResource("MacAccentBrush") as Brush
                          ?? new SolidColorBrush(Color.FromRgb(0x5B, 0x8D, 0xEF));
 
@@ -327,6 +358,19 @@ namespace Gekota.WPF.Pages
             }
         }
 
+        private void Room_StateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(IRoom.Streaming) &&
+                e.PropertyName != nameof(IRoom.Recording))
+                return;
+            if (!this.Dispatcher.CheckAccess())
+            {
+                this.Dispatcher.BeginInvoke(new Action(this.RenderReservations));
+                return;
+            }
+            this.RenderReservations();
+        }
+
         private void StreamerBar_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             this.selectedRoomName = CanonicalName((this.StreamerBar.SelectedItem as StreamerTile)?.Room?.Name);
@@ -334,6 +378,16 @@ namespace Gekota.WPF.Pages
         }
 
 #pragma warning disable VSTHRD100
+        private static bool IsCalendarEventAdded(string eventRoom, HashSet<string> addedNames)
+        {
+            if (addedNames.Contains(eventRoom)) return true;
+            if (string.Equals(eventRoom, "A-SOUL", StringComparison.OrdinalIgnoreCase))
+                return new[] { "贝拉", "嘉然", "乃琳" }.Any(addedNames.Contains);
+            if (string.Equals(eventRoom, "闪耀舞台", StringComparison.OrdinalIgnoreCase))
+                return new[] { "心宜", "思诺" }.Any(addedNames.Contains);
+            return false;
+        }
+
         private static bool IsCalendarArtist(string? name)
         {
             if (string.IsNullOrWhiteSpace(name)) return false;
@@ -365,7 +419,12 @@ namespace Gekota.WPF.Pages
 
         private async Task LoadReservationsAsync()
         {
-            if (this.refreshing) return;
+            if (this.refreshing)
+            {
+                // 刷新过程中再次点击：等当前请求结束后自动再刷新一次，避免点击被吞掉。
+                this.reloadQueued = true;
+                return;
+            }
             this.refreshing = true;
             this.LoadingOverlay.Visibility = Visibility.Visible;
             try
@@ -375,11 +434,18 @@ namespace Gekota.WPF.Pages
             finally
             {
                 this.refreshing = false;
+                this.LoadingOverlay.Visibility = Visibility.Collapsed;
+                if (this.reloadQueued)
+                {
+                    this.reloadQueued = false;
+                    await this.LoadReservationsAsync();
+                }
             }
         }
 
         private async Task LoadReservationsCoreAsync()
         {
+            var previousReservations = this.reservations.ToList();
             this.reservations.Clear();
             foreach (var panel in this.dayPanels.Values)
             {
@@ -511,14 +577,17 @@ namespace Gekota.WPF.Pages
                 // 同一主播、同一开始时间只保留一条，防止重复预约动态。
 
                 var calendar = await ScheduleCalendarService.GetAsync(monday, end);
+                var addedNames = new HashSet<string>(
+                    rooms.Select(r => CanonicalName(r.Name)), StringComparer.Ordinal);
                 foreach (var item in calendar)
                 {
                     var name = CanonicalName(item.RoomName);
+                    if (!IsCalendarEventAdded(name, addedNames)) continue;
                     var key = ScheduleSkipPolicy.Key(name, item.Start);
                     var theme = this.themeByRoom.TryGetValue(name, out var color) ? color : ResolveTheme(name, null);
                     this.reservations.Add(new ReservationItem(
                         item.Start, name, item.Title, key, theme, this.skippedKeys.Contains(key),
-                        cancelled: item.Title.IndexOf("取消", StringComparison.Ordinal) >= 0,
+                        cancelled: item.Cancelled || item.Title.IndexOf("取消", StringComparison.Ordinal) >= 0,
                         isZhijiang: false, rawText: item.Raw));
                 }
 
@@ -550,6 +619,9 @@ namespace Gekota.WPF.Pages
             }
             catch (Exception ex)
             {
+                if (this.reservations.Count == 0 && previousReservations.Count > 0)
+                    this.reservations.AddRange(previousReservations);
+                this.RenderReservations();
                 this.ShowFailure("读取预约失败：" + ex.Message);
             }
         }
@@ -792,9 +864,20 @@ namespace Gekota.WPF.Pages
 
             if (willSkip && reservation.Start.Date == DateTime.Today)
             {
-                var room = (this.DataContext as IRecorder)?.Rooms
-                    .FirstOrDefault(r => CanonicalName(r.Name) == reservation.RoomName);
-                if (room?.Recording == true) room.StopRecord();
+                IEnumerable<IRoom> rooms = (this.DataContext as IRecorder)?.Rooms ?? Enumerable.Empty<IRoom>();
+                var members = reservation.RoomName switch
+                {
+                    "A-SOUL" => new[] { "贝拉", "嘉然", "乃琳" },
+                    "闪耀舞台" => new[] { "心宜", "思诺" },
+                    _ => Array.Empty<string>(),
+                };
+                foreach (var room in rooms)
+                {
+                    var name = CanonicalName(room.Name);
+                    if (string.Equals(name, reservation.RoomName, StringComparison.Ordinal) ||
+                        members.Any(m => name.IndexOf(m, StringComparison.OrdinalIgnoreCase) >= 0))
+                        room.StopRecord();
+                }
             }
 
             this.RenderReservations();
@@ -835,12 +918,37 @@ namespace Gekota.WPF.Pages
                 for (var row = 0; row < items.Count; row++)
                 {
                     panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    var block = this.CreateEventBlock(items[row]);
+                    var block = this.CreateEventBlock(items[row], items.Count >= 4);
                     block.HorizontalAlignment = HorizontalAlignment.Stretch;
                     Grid.SetRow(block, row);
                     panel.Children.Add(block);
                 }
             }
+        }
+
+        private bool IsEventEndedByRoom(ReservationItem reservation)
+        {
+            if (reservation.Start > DateTime.Now) return false;
+            var recorder = this.DataContext as IRecorder;
+            if (recorder == null) return false;
+
+            var members = reservation.RoomName switch
+            {
+                "A-SOUL" => new[] { "贝拉", "嘉然", "乃琳" },
+                "闪耀舞台" => new[] { "心宜", "思诺" },
+                _ => Array.Empty<string>(),
+            };
+            var rooms = recorder.Rooms.Where(r =>
+            {
+                var name = CanonicalName(r.Name);
+                return string.Equals(name, reservation.RoomName, StringComparison.Ordinal) ||
+                       members.Any(m => name.IndexOf(m, StringComparison.OrdinalIgnoreCase) >= 0);
+            }).ToList();
+            if (rooms.Count == 0) return false;
+            if (rooms.Any(r => r.Streaming || r.Recording)) return false;
+
+            // 给晚开播留出缓冲，避免刚到点就提前标成已结束。
+            return DateTime.Now - reservation.Start >= TimeSpan.FromMinutes(30);
         }
 
         private static bool IsLight(Color color)
@@ -857,19 +965,21 @@ namespace Gekota.WPF.Pages
             return (match.Groups[1].Value.Trim(), string.IsNullOrWhiteSpace(rest) ? match.Groups[1].Value.Trim() : rest);
         }
 
-        private Border CreateEventBlock(ReservationItem reservation)
+        private Border CreateEventBlock(ReservationItem reservation, bool compact = false)
         {
             var displayName = reservation.RoomName;
             var theme = reservation.ThemeColor;
-            var ended = reservation.Start < DateTime.Now;
+            var ended = !reservation.Cancelled && this.IsEventEndedByRoom(reservation);
             var muted = reservation.Cancelled || ended;
             var (category, title) = SplitCategoryTitle(reservation.Title);
             var topColor = muted ? Color.FromRgb(0xB8, 0xB8, 0xC0) : theme;
             var tagColor = muted ? Color.FromRgb(0x8E, 0x90, 0x98) : Blend(theme, Colors.Black, 0.34);
-            var bottomColor = muted ? Color.FromRgb(0xEF, 0xEF, 0xF2) : Blend(Colors.White, theme, 0.08);
+            var bottomColor = muted
+                ? (MacTheme.IsDark ? Color.FromRgb(0x2C, 0x2C, 0x2E) : Color.FromRgb(0xEF, 0xEF, 0xF2))
+                : (MacTheme.IsDark ? Blend(Color.FromRgb(0x2C, 0x2C, 0x2E), theme, 0.12) : Blend(Colors.White, theme, 0.08));
             var topText = muted ? Brushes.White : (IsLight(theme) ? new SolidColorBrush(Color.FromRgb(0x2F, 0x31, 0x39)) : Brushes.White);
 
-            var top = new Grid { Margin = new Thickness(10, 9, 10, 8) };
+            var top = new Grid { Margin = compact ? new Thickness(9, 6, 9, 6) : new Thickness(10, 9, 10, 8) };
             top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             top.ColumnDefinitions.Add(new ColumnDefinition());
             if (!string.IsNullOrWhiteSpace(category))
@@ -883,7 +993,7 @@ namespace Gekota.WPF.Pages
                     Child = new TextBlock
                     {
                         Text = category,
-                        FontSize = 12,
+                        FontSize = compact ? 11 : 12,
                         FontWeight = FontWeights.SemiBold,
                         Foreground = Brushes.White,
                     },
@@ -895,7 +1005,7 @@ namespace Gekota.WPF.Pages
             right.Children.Add(new TextBlock
             {
                 Text = reservation.Start.ToString("HH:mm"),
-                FontSize = 19,
+                FontSize = compact ? 17 : 19,
                 FontWeight = FontWeights.Bold,
                 Foreground = topText,
                 HorizontalAlignment = HorizontalAlignment.Right,
@@ -903,7 +1013,7 @@ namespace Gekota.WPF.Pages
             right.Children.Add(new TextBlock
             {
                 Text = displayName,
-                FontSize = 13,
+                FontSize = compact ? 12 : 13,
                 FontWeight = FontWeights.SemiBold,
                 Foreground = topText,
                 HorizontalAlignment = HorizontalAlignment.Right,
@@ -912,20 +1022,22 @@ namespace Gekota.WPF.Pages
             Grid.SetColumn(right, 1);
             top.Children.Add(right);
 
-            var bottom = new StackPanel { Margin = new Thickness(10, 8, 10, 9) };
+            var bottom = new StackPanel { Margin = compact ? new Thickness(9, 5, 9, 6) : new Thickness(10, 8, 10, 9) };
             bottom.Children.Add(new TextBlock
             {
                 Text = title,
-                FontSize = 12,
-                LineHeight = 17,
-                Foreground = new SolidColorBrush(muted ? Color.FromRgb(0x8A, 0x8B, 0x92) : Color.FromRgb(0x45, 0x47, 0x50)),
+                FontSize = compact ? 11 : 12,
+                LineHeight = compact ? 14 : 17,
+                Foreground = new SolidColorBrush(muted
+                    ? Color.FromRgb(0x8A, 0x8B, 0x92)
+                    : (MacTheme.IsDark ? Color.FromRgb(0xE6, 0xE6, 0xEA) : Color.FromRgb(0x45, 0x47, 0x50))),
                 TextWrapping = TextWrapping.Wrap,
             });
             if (muted)
             {
                 bottom.Children.Add(new TextBlock
                 {
-                    Text = ended ? "已结束" : "已取消",
+                    Text = reservation.Cancelled ? "已取消" : "已结束",
                     FontSize = 10.5,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x8B, 0x92)),

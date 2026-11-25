@@ -53,7 +53,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <Border Background="#F8FFFFFF" BorderBrush="#22000000"
+                        <Border Background="{DynamicResource MacFieldBrush}" BorderBrush="{DynamicResource MacBorderBrush}"
                                 BorderThickness="1" CornerRadius="8">
                             <ScrollViewer x:Name="PART_ContentHost" Margin="8,0" />
                         </Border>
@@ -197,7 +197,7 @@
         <!-- 周日程表 -->
         <!-- 日历链接 -->
         <Border x:Name="CalendarBar" Grid.Row="1" VerticalAlignment="Center" Panel.ZIndex="80" Width="620" HorizontalAlignment="Center" Margin="16" Padding="12,10"
-                Background="#D9FFFFFF" CornerRadius="16"
+                Background="{DynamicResource MacCardBrush}" CornerRadius="16"
                 BorderBrush="#28000000" BorderThickness="1">
             <Grid>
                 <Grid.ColumnDefinitions>

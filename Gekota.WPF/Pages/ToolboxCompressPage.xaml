@@ -80,9 +80,9 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock x:Name="InputInfoText" FontFamily="Consolas" FontSize="16" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="InputInfoText" FontFamily="{DynamicResource MacMonoFontFamily}" FontSize="16" TextWrapping="Wrap"/>
                     <TextBlock x:Name="OutputInfoText" Grid.Column="1" Margin="16,0,0,0"
-                               FontFamily="Consolas" FontSize="16" TextWrapping="Wrap"/>
+                               FontFamily="{DynamicResource MacMonoFontFamily}" FontSize="16" TextWrapping="Wrap"/>
                 </Grid>
             </Border>
 

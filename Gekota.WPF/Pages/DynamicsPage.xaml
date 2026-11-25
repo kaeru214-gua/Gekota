@@ -47,7 +47,7 @@
                         </ControlTemplate>
                     </Button.Template>
                     <ui:PathIcon Style="{StaticResource PathIconDataRefresh}" Width="18" Height="18"
-                                 Foreground="#22242A" />
+                                 Foreground="{DynamicResource MacTextPrimaryBrush}" />
                 </Button>
                 <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Disabled"
@@ -138,7 +138,7 @@
                 </Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="动态" FontSize="22" FontWeight="SemiBold" />
-                    <TextBlock x:Name="StatusText" Foreground="#333333" FontSize="12"
+                    <TextBlock x:Name="StatusText" Foreground="{DynamicResource MacTextSecondaryBrush}" FontSize="12"
                                VerticalAlignment="Center" Margin="12,4,0,0" Text="正在读取…" />
                 </StackPanel>
                 <ScrollViewer x:Name="FeedScroll" Grid.Row="1" Margin="0,12,0,0"
@@ -182,13 +182,13 @@
                                         <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Author}" FontSize="16"
-                                                           FontWeight="SemiBold" Foreground="#111111" />
+                                                           FontWeight="SemiBold" Foreground="{DynamicResource MacTextPrimaryBrush}" />
                                                 <TextBlock Text="{Binding Time}" FontSize="14"
                                                            FontWeight="SemiBold"
-                                                           Foreground="#222222" Margin="10,0,0,0" />
+                                                           Foreground="{DynamicResource MacTextPrimaryBrush}" Margin="10,0,0,0" />
                                             </StackPanel>
                                             <TextBlock FontSize="16"
-                                                       Foreground="#111111" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource MacTextPrimaryBrush}" TextWrapping="Wrap"
                                                        LineHeight="23"
                                                        Margin="0,6,0,0"
                                                        Loaded="RichText_Loaded" />

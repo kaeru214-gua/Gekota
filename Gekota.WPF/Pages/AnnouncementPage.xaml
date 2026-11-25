@@ -11,16 +11,16 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="30,24" MaxWidth="720" HorizontalAlignment="Left">
 
-            <TextBlock Text="声明" FontSize="30" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+            <TextBlock Text="声明" FontSize="30" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"/>
 
             <Border Background="#140078D4" BorderBrush="#330078D4" BorderThickness="1"
                     CornerRadius="10" Padding="9,3" HorizontalAlignment="Left" Margin="0,8,0,0">
-                <TextBlock x:Name="VersionText" Text="v1.2.2" FontSize="12" FontWeight="Bold"
-                           FontFamily="Microsoft YaHei" Foreground="#FF0B5FA5"/>
+                <TextBlock x:Name="VersionText" Text="v1.2.3" FontSize="12" FontWeight="Bold"
+                           FontFamily="{DynamicResource MacFontFamily}" Foreground="#FF0B5FA5"/>
             </Border>
 
-            <TextBlock Margin="0,14,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                       Foreground="#666870" TextWrapping="Wrap"
+            <TextBlock Margin="0,14,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                       Foreground="{DynamicResource MacTextSecondaryBrush}" TextWrapping="Wrap"
                        Text="Gekota 是一个免费、开源的哔哩哔哩录播工具。使用前请阅读以下声明。"/>
 
             <Button Content="打开使用教程" HorizontalAlignment="Left" Margin="0,12,0,0"
@@ -30,15 +30,15 @@
             <Border Background="#0D0078D4" BorderBrush="#220078D4" BorderThickness="1"
                     CornerRadius="14" Padding="18,16" Margin="0,22,0,0">
                 <StackPanel>
-                    <TextBlock Text="软件声明" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
-                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Text="软件声明" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"/>
+                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="本软件为免费软件，仅供学习交流使用，禁止用于任何商业用途。"/>
-                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="录制、压制和上传的内容版权归原主播及权利方所有。使用者应遵守哔哩哔哩平台规则及相关法律法规，不得传播违法、侵权或未经授权的内容。"/>
-                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="使用本软件产生的任何后果由使用者自行承担。"/>
                 </StackPanel>
             </Border>
@@ -47,12 +47,12 @@
             <Border Background="#0D000000" BorderBrush="#18000000" BorderThickness="1"
                     CornerRadius="14" Padding="18,16" Margin="0,14,0,0">
                 <StackPanel>
-                    <TextBlock Text="数据来源" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
-                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Text="数据来源" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"/>
+                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="日程表数据来自哔哩哔哩动态、直播预约、微博公开动态，以及用户自行导入的日历链接。"/>
-                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,6,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="A-SOUL / 闪耀舞台日程来自闪耀舞台公开日历；本软件与哔哩哔哩、微博及日历提供方均无隶属关系。"/>
                 </StackPanel>
             </Border>
@@ -61,44 +61,44 @@
             <Border Background="#0D000000" BorderBrush="#18000000" BorderThickness="1"
                     CornerRadius="14" Padding="18,16" Margin="0,14,0,0">
                 <StackPanel>
-                    <TextBlock Text="开源与致谢" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
-                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Text="开源与致谢" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"/>
+                    <TextBlock Margin="0,10,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="本项目基于 BililiveRecorder（录播姬）修改而来，遵循 GNU General Public License v3.0 协议开源。"/>
-                    <TextBlock Margin="0,4,0,0" FontSize="13" FontFamily="Microsoft YaHei"
+                    <TextBlock Margin="0,4,0,0" FontSize="13" FontFamily="{DynamicResource MacFontFamily}"
                                Foreground="#7A7C84" Text="原始版权：Copyright © 2018-2026 Genteure"/>
-                    <TextBlock Margin="0,2,0,0" FontSize="13" FontFamily="Microsoft YaHei"
+                    <TextBlock Margin="0,2,0,0" FontSize="13" FontFamily="{DynamicResource MacFontFamily}"
                                Foreground="#7A7C84" Text="修改部分版权：Copyright © 2026 Gekota Contributors"/>
 
-                    <TextBlock Margin="0,14,0,0" FontSize="14" FontWeight="Bold" FontFamily="Microsoft YaHei"
+                    <TextBlock Margin="0,14,0,0" FontSize="14" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"
                                Text="特别鸣谢"/>
-                    <TextBlock Margin="0,8,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,8,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="· BililiveRecorder：录制核心与开源基础"/>
-                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="· DanmakuFactory：弹幕转换"/>
-                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="· ShanaEncoder：视频压制"/>
-                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="· biliup / biliup-rs：自动上传"/>
-                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#4C4E57"
+                    <TextBlock Margin="0,5,0,0" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextSecondaryBrush}"
                                Text="· 枝江日程表：A-SOUL / 闪耀舞台日历数据"/>
 
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <TextBlock Text="枝江日程表：" FontSize="13" FontFamily="Microsoft YaHei"
-                                   Foreground="#666870" VerticalAlignment="Center"/>
-                        <ui:HyperlinkButton Padding="0" FontFamily="Microsoft YaHei"
+                        <TextBlock Text="枝江日程表：" FontSize="13" FontFamily="{DynamicResource MacFontFamily}"
+                                   Foreground="{DynamicResource MacTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" FontFamily="{DynamicResource MacFontFamily}"
                                             Content="https://asoul.love/calendar"
                                             NavigateUri="https://asoul.love/calendar"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <TextBlock Text="原始项目：" FontSize="13" FontFamily="Microsoft YaHei"
-                                   Foreground="#666870" VerticalAlignment="Center"/>
-                        <ui:HyperlinkButton Padding="0" FontFamily="Microsoft YaHei"
+                        <TextBlock Text="原始项目：" FontSize="13" FontFamily="{DynamicResource MacFontFamily}"
+                                   Foreground="{DynamicResource MacTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" FontFamily="{DynamicResource MacFontFamily}"
                                             Content="https://github.com/BililiveRecorder/BililiveRecorder"
                                             NavigateUri="https://github.com/BililiveRecorder/BililiveRecorder"/>
                     </StackPanel>
@@ -109,16 +109,16 @@
             <Border Background="#0D000000" BorderBrush="#18000000" BorderThickness="1"
                     CornerRadius="14" Padding="18,16" Margin="0,14,0,24">
                 <StackPanel>
-                    <TextBlock Text="联系方式" FontSize="18" FontWeight="Bold" FontFamily="Microsoft YaHei"/>
+                    <TextBlock Text="联系方式" FontSize="18" FontWeight="Bold" FontFamily="{DynamicResource MacFontFamily}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <TextBlock Text="哔哩哔哩：" FontSize="14" FontFamily="Microsoft YaHei"
-                                   Foreground="#666870" VerticalAlignment="Center"/>
-                        <ui:HyperlinkButton Padding="0" FontFamily="Microsoft YaHei"
+                        <TextBlock Text="哔哩哔哩：" FontSize="14" FontFamily="{DynamicResource MacFontFamily}"
+                                   Foreground="{DynamicResource MacTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        <ui:HyperlinkButton Padding="0" FontFamily="{DynamicResource MacFontFamily}"
                                             Content="gua_02014"
                                             NavigateUri="https://space.bilibili.com/26187233"/>
                     </StackPanel>
-                    <TextBlock Margin="0,8,0,0" FontSize="13" FontFamily="Microsoft YaHei"
-                               TextWrapping="Wrap" Foreground="#888A92"
+                    <TextBlock Margin="0,8,0,0" FontSize="13" FontFamily="{DynamicResource MacFontFamily}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource MacTextTertiaryBrush}"
                                Text="如有问题，请在项目仓库提交 Issue。"/>
                 </StackPanel>
             </Border>

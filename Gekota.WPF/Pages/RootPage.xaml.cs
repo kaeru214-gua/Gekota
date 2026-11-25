@@ -361,6 +361,14 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     });
 
                     this.UpdateUserIcon();
+
+                    // 启动后恢复上次未完成的压制任务，并补合并最近断流分段。
+                    CompressSession.Instance.RestorePending();
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(8000).ConfigureAwait(false);
+                        await this.RecoverExistingSegmentsAsync().ConfigureAwait(false);
+                    });
                     break;
                 }
                 catch (Exception ex)
@@ -866,8 +874,6 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             this.ApplyAppearance();
         }
 
-        private void SwitchLightDarkTheme_Click(object sender, RoutedEventArgs e) => this.ToggleTheme();
-
         // ============================================================
         // 用户登录状态
         // ============================================================
@@ -907,17 +913,90 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                 room != null ? "room-" + room.RoomConfig.RoomId + "|" + Path.GetDirectoryName(flvPath) : flvPath,
                 room != null ? () => room.Streaming : null,
                 async path =>
-            {
-                await this.RemuxToMp4Async(path).ConfigureAwait(false);
-                this.CompressAfterRecordingAsync(path, room, openTime, liveTitle);
-            });
+                {
+                    await this.ProcessRecordingFileAsync(path, room, openTime, liveTitle).ConfigureAwait(false);
+                });
         }
 
-        private void ConvertDanmakuAsync(string flvPath)
+        private async Task ProcessRecordingFileAsync(string flvPath, IRoom? room, DateTimeOffset openTime, string liveTitle)
+        {
+            await this.RemuxToMp4Async(flvPath).ConfigureAwait(false);
+            this.CompressAfterRecordingAsync(flvPath, room, openTime, liveTitle);
+        }
+
+        private async Task AutoUploadLocalAsync(string work, TimeSpan minAge)
+        {
+            if (!BiliUploadSettings.AutoUploadEnabled) return;
+            var entries = UploadPendingService.Find(work, TimeSpan.FromDays(30), minAge);
+            foreach (var entry in entries)
+            {
+                IRoom? room = null;
+                await this.Dispatcher.InvokeAsync(() =>
+                {
+                    var recorder = this.DataContext as IRecorder ??
+                                   RootPage.ServiceProvider?.GetService(typeof(IRecorder)) as IRecorder;
+                    room = recorder?.Rooms.FirstOrDefault(r => r.RoomConfig.RoomId == entry.RoomId);
+                });
+                if (room == null) continue;
+                var open = new DateTimeOffset(File.GetLastWriteTime(entry.BasePath));
+                BiliUploadQueue.Instance.Enqueue(() =>
+                    this.AutoUploadAfterRecordingAsync(entry.BasePath, room!, open, entry.Title));
+            }
+        }
+
+        private async Task RecoverExistingSegmentsAsync()
         {
             try
             {
-                if (!DanmakuConvertSettings.Current.AutoConvertEnabled)
+                IRecorder? recorder = null;
+                string work = "";
+                await this.Dispatcher.InvokeAsync(() =>
+                {
+                    recorder = this.DataContext as IRecorder ??
+                               RootPage.ServiceProvider?.GetService(typeof(IRecorder)) as IRecorder;
+                    work = recorder?.Config.Global.WorkDirectory ?? "";
+                });
+                if (recorder == null) return;
+
+                var results = await RecordingSegmentMerger.MergeExistingRecentAsync(work, TimeSpan.FromDays(3))
+                    .ConfigureAwait(false);
+                foreach (var result in results)
+                {
+                    var streamerName = Path.GetFileName(Path.GetDirectoryName(result.TitleFolder) ?? "");
+                    var roomIdText = streamerName.Split('-')[0];
+                    if (!long.TryParse(roomIdText, out var roomId)) continue;
+                    IRoom? room = null;
+                    await this.Dispatcher.InvokeAsync(() =>
+                    {
+                        room = recorder!.Rooms.FirstOrDefault(r => r.RoomConfig.RoomId == roomId);
+                    });
+                    if (room == null) continue;
+                    await this.ProcessRecordingFileAsync(result.MergedPath, room,
+                        new DateTimeOffset(result.Open), Path.GetFileName(result.TitleFolder)).ConfigureAwait(false);
+                }
+                CompressSession.Instance.RestoreFromDisk(work);
+                await this.AutoUploadLocalAsync(work, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
+                // 恢复压制完成后，再补一次本地未上传扫描（新生成的压制产物刚写完）。
+                if (CompressSession.Instance.IsBusy)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await CompressSession.Instance.WaitUntilIdleAsync().ConfigureAwait(false);
+                        await this.AutoUploadLocalAsync(work, TimeSpan.Zero).ConfigureAwait(false);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[合并] 启动补合并失败");
+            }
+        }
+
+        private void ConvertDanmakuAsync(string flvPath, bool force = false)
+        {
+            try
+            {
+                if (!force && !DanmakuConvertSettings.Current.AutoConvertEnabled)
                     return;
 
                 var xmlPath = Path.ChangeExtension(flvPath, "xml");
@@ -942,7 +1021,10 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             try
             {
                 // 1) 先转弹幕，生成 .ass
-                this.ConvertDanmakuAsync(flvPath);
+                this.ConvertDanmakuAsync(flvPath, MaterialSettings.Enabled);
+                if (MaterialSettings.Enabled)
+                    MaterialArchiveService.Save(flvPath, room?.Name ??
+                        Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(flvPath) ?? "") ?? ""));
 
                 var options = VideoCompressSettings.Current;
                 var assPath = Path.ChangeExtension(flvPath, "ass");
@@ -974,12 +1056,42 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             }
         }
 
+        private static bool HasUsableOutput(string path)
+            => File.Exists(path) && new FileInfo(path).Length > 0;
+
+        /// <summary>只等待本次录制的压制产物，不被队列里其他视频阻塞。</summary>
+        private async Task WaitForUploadOutputsAsync(string flvPath)
+        {
+            var options = VideoCompressSettings.Current;
+            if (!options.AutoCompressEnabled) return;
+
+            var dir = Path.GetDirectoryName(flvPath) ?? "";
+            var name = Path.GetFileNameWithoutExtension(flvPath);
+            var ext = string.IsNullOrWhiteSpace(options.Container) ? "mp4" : options.Container;
+            var clean = Path.Combine(dir, name + "【纯净版】." + ext);
+            var danmaku = Path.Combine(dir, name + "【弹幕版】." + ext);
+            var key = Path.Combine(dir, name).ToLowerInvariant();
+            var deadline = DateTime.UtcNow.AddHours(12);
+
+            while (DateTime.UtcNow < deadline)
+            {
+                if (HasUsableOutput(clean) && HasUsableOutput(danmaku)) return;
+                var targetQueued = CompressSession.Instance.Items.Any(x =>
+                    Path.Combine(Path.GetDirectoryName(x.FilePath) ?? "",
+                        Path.GetFileNameWithoutExtension(x.FilePath)).ToLowerInvariant() == key);
+                if (!targetQueued) return;
+                if (!CompressSession.Instance.IsBusy) return;
+                await Task.Delay(3000).ConfigureAwait(false);
+            }
+            logger.Warning("[上传] 等待压制超时，按现有文件继续尝试上传 {Flv}", flvPath);
+        }
+
         private async Task AutoUploadAfterRecordingAsync(string flvPath, IRoom room, DateTimeOffset openTime, string eventTitle)
         {
             var ui = BiliUploadSession.Instance;
             try
             {
-                await CompressSession.Instance.WaitUntilIdleAsync().ConfigureAwait(false);
+                await this.WaitForUploadOutputsAsync(flvPath).ConfigureAwait(false);
                 ui.Start(Path.GetFileName(flvPath));
                 logger.Information("[上传] 开始自动上传 {Flv}", flvPath);
 
@@ -1035,6 +1147,9 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
                     .ConfigureAwait(false);
 
                 ui.Complete(bvid);
+                UploadHistoryStore.Mark(room.RoomConfig.RoomId, titleFolder,
+                    Path.GetFileNameWithoutExtension(flvPath));
+                this.TryDeleteUploadedFolder(flvPath, room);
                 logger.Information("[上传] 自动投稿成功 {Bvid}", bvid);
             }
             catch (VideoTooLargeException ex)
@@ -1051,6 +1166,26 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
             {
                 ui.Fail(ex.Message);
                 logger.Warning(ex, "[上传] 自动上传失败 {Flv}", flvPath);
+            }
+        }
+
+        private void TryDeleteUploadedFolder(string flvPath, IRoom room)
+        {
+            try
+            {
+                var folder = Path.GetDirectoryName(flvPath);
+                if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) return;
+                if (room.Recording) return;
+                var current = room.CurrentRecordFilePath;
+                if (!string.IsNullOrWhiteSpace(current) &&
+                    string.Equals(Path.GetDirectoryName(current), folder, StringComparison.OrdinalIgnoreCase))
+                    return;
+                Directory.Delete(folder, true);
+                logger.Information("[上传] 已删除已投稿场次文件夹 {Folder}", folder);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "[上传] 删除已投稿场次文件夹失败 {Folder}", flvPath);
             }
         }
 
@@ -1146,7 +1281,20 @@ You can uninstall me in system settings.", "安装成功 Installed", MessageBoxB
 
                 MacTheme.Apply();
 
-                if (!string.IsNullOrWhiteSpace(s.BackgroundImagePath) && File.Exists(s.BackgroundImagePath))
+                var hasBackground = !string.IsNullOrWhiteSpace(s.BackgroundImagePath) && File.Exists(s.BackgroundImagePath);
+                this.WindowBaseLayer.Background = hasBackground
+                    ? System.Windows.Media.Brushes.Transparent
+                    : (System.Windows.Media.Brush)this.FindResource("MacWindowBaseBrush");
+                this.DarkOverlay.Visibility = MacTheme.IsDark && hasBackground
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+                this.AppearanceBackgroundImage.Effect = new System.Windows.Media.Effects.BlurEffect
+                {
+                    Radius = s.UseAcrylic ? 16 : 0,
+                    KernelType = System.Windows.Media.Effects.KernelType.Gaussian,
+                    RenderingBias = System.Windows.Media.Effects.RenderingBias.Performance,
+                };
+                if (hasBackground)
                 {
                     Application.Current.Resources["MacContentBrush"] = System.Windows.Media.Brushes.Transparent;
                     var image = await BackgroundImageService.GetAsync(s.BackgroundImagePath);

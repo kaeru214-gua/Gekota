@@ -6,8 +6,8 @@ namespace Gekota
     /// </summary>
     public static class GekotaVersion
     {
-        public const string FullSemVer = "1.2.2";
-        public const string InformationalVersion = "1.2.2";
+        public const string FullSemVer = "1.2.3";
+        public const string InformationalVersion = "1.2.3";
         public const string CommitDate = "2026-01-01";
         public const string Sha = "unknown";
         public const string ShortSha = "unknown";

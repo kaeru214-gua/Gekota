@@ -60,9 +60,38 @@ namespace Gekota.Core
         public static bool IsSkipped(string roomName, DateTime when)
         {
             EnsureLoaded();
-            var prefix = (roomName ?? "") + "|" + when.ToString("yyyy-MM-dd");
+            var date = when.ToString("yyyy-MM-dd");
             lock (Gate)
-                return Keys.Any(k => k.StartsWith(prefix + " ", StringComparison.Ordinal));
+            {
+                foreach (var key in Keys)
+                {
+                    var split = key.LastIndexOf('|');
+                    if (split <= 0) continue;
+                    var keyRoom = key.Substring(0, split);
+                    var timeText = key.Substring(split + 1);
+                    if (!timeText.StartsWith(date + " ", StringComparison.Ordinal)) continue;
+                    if (!RoomMatches(keyRoom, roomName)) continue;
+                    if (DateTime.TryParse(timeText, out var start) &&
+                        Math.Abs((when - start).TotalMinutes) <= 90)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool RoomMatches(string keyRoom, string roomName)
+        {
+            var actual = roomName ?? "";
+            if (string.Equals(keyRoom, actual, StringComparison.OrdinalIgnoreCase)) return true;
+            // 日程里存的是「乃琳」，实际房间名可能是「乃琳Queen」。
+            if (actual.IndexOf(keyRoom, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (string.Equals(keyRoom, "A-SOUL", StringComparison.OrdinalIgnoreCase))
+                return new[] { "贝拉", "嘉然", "乃琳" }
+                    .Any(n => actual.IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (string.Equals(keyRoom, "闪耀舞台", StringComparison.OrdinalIgnoreCase))
+                return new[] { "心宜", "思诺" }
+                    .Any(n => actual.IndexOf(n, StringComparison.OrdinalIgnoreCase) >= 0);
+            return false;
         }
 
         public static string Key(string roomName, DateTime start) =>

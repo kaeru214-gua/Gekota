@@ -9,8 +9,8 @@
         Background="Transparent"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-    <Border Background="#F8F8FA"
-            BorderBrush="#24000000"
+    <Border Background="{DynamicResource MacCardBrush}"
+            BorderBrush="{DynamicResource MacBorderBrush}"
             BorderThickness="1"
             CornerRadius="18"
             Padding="24,20">
@@ -19,16 +19,16 @@
         </Border.Effect>
         <StackPanel>
             <TextBlock x:Name="TitleText" FontSize="20" FontWeight="SemiBold"
-                       FontFamily="Microsoft YaHei" Foreground="#202126"/>
+                       FontFamily="{DynamicResource MacFontFamily}" Foreground="{DynamicResource MacTextPrimaryBrush}"/>
             <TextBlock x:Name="HintText" Margin="0,6,0,0" FontSize="12"
-                       FontFamily="Microsoft YaHei" Foreground="#777781"
+                       FontFamily="{DynamicResource MacFontFamily}" Foreground="{DynamicResource MacTextTertiaryBrush}"
                        TextWrapping="Wrap"/>
             <TextBox x:Name="Editor" Margin="0,14,0,0"
                      MinHeight="96" MaxHeight="260"
                      AcceptsReturn="True" TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"
                      Padding="10,8"
-                     FontFamily="Microsoft YaHei" FontSize="13"/>
+                     FontFamily="{DynamicResource MacFontFamily}" FontSize="13"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
                 <Button Content="取消" Width="86" Height="32" Margin="0,0,8,0" Click="Cancel_Click"/>
                 <Button Content="保存" Width="86" Height="32" Click="Save_Click"/>

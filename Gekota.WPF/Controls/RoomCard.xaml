@@ -58,7 +58,7 @@
                     <RowDefinition Height="25"/>
                 </Grid.RowDefinitions>
                 <TextBlock VerticalAlignment="Center" Style="{DynamicResource SubtitleTextBlockStyle}"
-                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontFamily="Microsoft Yahei"
+                           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontFamily="{DynamicResource MacFontFamily}"
                            Foreground="White"
                            Text="{Binding Name,Mode=OneWay}" ToolTip="{Binding Name,Mode=OneWay}">
                     <TextBlock.Effect>

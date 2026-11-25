@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CliWrap;
+using CliWrap.Buffered;
 using Gekota.WPF.Controls;
 using Serilog;
 
@@ -72,7 +74,7 @@ namespace Gekota.WPF.Services
             }
 
             // 任一文件超 16GB → 整单跳过（不传任何分 P）
-            CheckAllWithinLimit(cleanPath, danmakuPath, fangzhuangPath);
+            if (fangzhuangPath != null) EnsureWithinLimit(fangzhuangPath);
 
             var namePart = (info.StreamerName ?? string.Empty).Trim();
             var titlePart = (info.LiveTitle ?? string.Empty).Trim();
@@ -114,17 +116,11 @@ namespace Gekota.WPF.Services
 
             var parts = new List<UploadedVideoPart>();
             if (cleanExists)
-            {
-                status?.Report("上传【纯净版】");
-                var (fn, cid) = await svc.UploadVideoAsync(cleanPath!, fileProgress, ct).ConfigureAwait(false);
-                parts.Add(new UploadedVideoPart { Filename = fn, Cid = cid, Title = "纯净版", Desc = string.Empty });
-            }
+                parts.AddRange(await UploadVideoPartsAsync(svc, cleanPath!, "纯净版", status, fileProgress, ct)
+                    .ConfigureAwait(false));
             if (danmakuExists)
-            {
-                status?.Report("上传【弹幕版】");
-                var (fn, cid) = await svc.UploadVideoAsync(danmakuPath!, fileProgress, ct).ConfigureAwait(false);
-                parts.Add(new UploadedVideoPart { Filename = fn, Cid = cid, Title = "弹幕版", Desc = string.Empty });
-            }
+                parts.AddRange(await UploadVideoPartsAsync(svc, danmakuPath!, "弹幕版", status, fileProgress, ct)
+                    .ConfigureAwait(false));
             if (fangzhuangPath != null)
             {
                 status?.Report("上传【防撞】");
@@ -234,6 +230,79 @@ namespace Gekota.WPF.Services
         }
 
         /// <summary>任一文件超过 16GB 就抛 VideoTooLargeException（整单跳过）。</summary>
+        /// <summary>上传单个文件；超过 B 站 16GB 限制时按时间拆成多个分 P。</summary>
+        private static async Task<List<UploadedVideoPart>> UploadVideoPartsAsync(
+            BiliUploadService svc, string path, string label,
+            IProgress<string>? status, IProgress<double>? progress, CancellationToken ct)
+        {
+            var result = new List<UploadedVideoPart>();
+            var size = new FileInfo(path).Length;
+            if (size <= BiliUploadService.MaxVideoBytes)
+            {
+                status?.Report("上传【" + label + "】");
+                var (fn, cid) = await svc.UploadVideoAsync(path, progress, ct).ConfigureAwait(false);
+                result.Add(new UploadedVideoPart { Filename = fn, Cid = cid, Title = label, Desc = string.Empty });
+                return result;
+            }
+
+            var duration = MediaProbe.Probe(path)?.DurationSec ?? 0;
+            if (duration <= 0)
+                throw new VideoTooLargeException(path, size);
+
+            const long targetBytes = 14L * 1024 * 1024 * 1024;
+            var count = Math.Max(2, (int)Math.Ceiling(size / (double)targetBytes));
+            var partSeconds = duration / count;
+            var ffmpeg = Path.Combine(AppContext.BaseDirectory, "lib", "miniffmpeg");
+            var ext = Path.GetExtension(path);
+            if (string.IsNullOrWhiteSpace(ext)) ext = ".mp4";
+            var tempDir = Path.Combine(Path.GetTempPath(), "GekotaUploadParts",
+                Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    ct.ThrowIfCancellationRequested();
+                    var partPath = Path.Combine(tempDir, "part" + (i + 1) + ext);
+                    var start = i * partSeconds;
+                    var length = Math.Min(partSeconds, Math.Max(0, duration - start));
+                    var args = "-hide_banner -loglevel error -y -ss " +
+                               start.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                               " -i \"" + path + "\" -t " +
+                               length.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+                               " -c copy -avoid_negative_ts make_zero \"" + partPath + "\"";
+                    var run = await Cli.Wrap(ffmpeg)
+                        .WithValidation(CommandResultValidation.None)
+                        .WithWorkingDirectory(Path.GetDirectoryName(ffmpeg)!)
+                        .WithArguments(args)
+                        .ExecuteBufferedAsync(ct).ConfigureAwait(false);
+                    if (run.ExitCode != 0 || !File.Exists(partPath) ||
+                        new FileInfo(partPath).Length == 0 ||
+                        new FileInfo(partPath).Length > BiliUploadService.MaxVideoBytes)
+                        throw new Exception("分段上传失败：无法生成合规的视频分段，请检查源文件时长/编码");
+
+                    var title = label + "Part" + (i + 1);
+                    status?.Report("上传【" + title + "】");
+                    var (fn, cid) = await svc.UploadVideoAsync(partPath, progress, ct).ConfigureAwait(false);
+                    result.Add(new UploadedVideoPart { Filename = fn, Cid = cid, Title = title, Desc = string.Empty });
+                    try { File.Delete(partPath); } catch { }
+                }
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+            return result;
+        }
+
+        private static void EnsureWithinLimit(string path)
+        {
+            if (!File.Exists(path)) return;
+            var length = new FileInfo(path).Length;
+            if (length > BiliUploadService.MaxVideoBytes)
+                throw new VideoTooLargeException(path, length);
+        }
+
         private static void CheckAllWithinLimit(params string?[] paths)
         {
             foreach (var p in paths)

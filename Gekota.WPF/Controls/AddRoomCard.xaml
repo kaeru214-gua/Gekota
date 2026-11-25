@@ -28,8 +28,8 @@
 
             <!-- 标题 -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.ColumnSpan="2">
-                <ui:PathIcon Margin="5" Foreground="#1D1D1F" Style="{StaticResource PathIconDataPlus}"/>
-                <TextBlock FontSize="20" VerticalAlignment="Center" Foreground="#1D1D1F"
+                <ui:PathIcon Margin="5" Foreground="{DynamicResource MacTextPrimaryBrush}" Style="{StaticResource PathIconDataPlus}"/>
+                <TextBlock FontSize="20" VerticalAlignment="Center" Foreground="{DynamicResource MacTextPrimaryBrush}"
                            Text="{l:Loc AddRoomCard_Title}"/>
             </StackPanel>
 
@@ -39,7 +39,7 @@
                      ui:ControlHelper.CornerRadius="8"
                      FontSize="{l:Loc AddRoomCard_PlaceholderText_FontSize}"
                      ui:ControlHelper.PlaceholderText="{l:Loc AddRoomCard_PlaceholderText}"
-                     Background="#80FFFFFF" Foreground="#1D1D1F" BorderThickness="0" BorderBrush="Transparent" CaretBrush="#1D1D1F"
+                     Background="{DynamicResource MacFieldBrush}" Foreground="{DynamicResource MacTextPrimaryBrush}" BorderThickness="0" BorderBrush="Transparent" CaretBrush="{DynamicResource MacTextPrimaryBrush}"
                      KeyDown="InputTextBox_KeyDown">
                 <TextBox.Resources>
                     <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#8E8E93"/>
